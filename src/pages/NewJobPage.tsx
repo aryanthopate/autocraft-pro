@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,6 +11,7 @@ import {
   Check,
   Loader2,
   Search,
+  Percent,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -20,12 +21,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { VehicleConfigurator, VehicleType } from "@/components/vehicle-config";
-import { Car3DViewer, CAR_HOTSPOTS, Hotspot3D, SelectedZone as Zone3D } from "@/components/vehicle-config/Car3DViewer";
+import { Car3DViewer, Hotspot3D } from "@/components/vehicle-config/Car3DViewer";
 import { ServiceSelector } from "@/components/vehicle-config/ServiceSelector";
+import { VehicleDropdowns } from "@/components/vehicle/VehicleDropdowns";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getColorHex } from "@/data/vehicleData";
 
 type Step = "customer" | "vehicle" | "services" | "review";
 
@@ -34,7 +37,6 @@ interface CustomerData {
   name: string;
   phone: string;
   email: string;
-  gstn: string;
   whatsapp_number: string;
   isNew: boolean;
 }
@@ -54,6 +56,10 @@ interface SelectedZone {
   name: string;
   services: string[];
   price: number;
+}
+
+interface StudioSettings {
+  gstin: string | null;
 }
 
 const STEPS: { id: Step; label: string; icon: React.ElementType }[] = [
@@ -106,7 +112,6 @@ export default function NewJobPage() {
     name: "",
     phone: "",
     email: "",
-    gstn: "",
     whatsapp_number: "",
     isNew: true,
   });
@@ -127,6 +132,10 @@ export default function NewJobPage() {
   const [activeHotspot, setActiveHotspot] = useState<Hotspot3D | null>(null);
   const [notes, setNotes] = useState("");
   const [use3DViewer, setUse3DViewer] = useState(true);
+  
+  // GST state (only enabled if studio has GSTIN)
+  const [gstPercent, setGstPercent] = useState<number>(0);
+  const studioHasGstin = Boolean(studio?.gstin);
 
   const handlePhoneSearch = async () => {
     if (phoneSearch.length < 10) {
@@ -153,7 +162,6 @@ export default function NewJobPage() {
           name: existingCustomer.name,
           phone: existingCustomer.phone,
           email: existingCustomer.email || "",
-          gstn: existingCustomer.gstn || "",
           whatsapp_number: existingCustomer.whatsapp_number || "",
           isNew: false,
         });
@@ -164,7 +172,6 @@ export default function NewJobPage() {
           name: "",
           phone: formattedPhone,
           email: "",
-          gstn: "",
           whatsapp_number: formattedPhone,
           isNew: true,
         });
@@ -238,7 +245,6 @@ export default function NewJobPage() {
             name: customer.name,
             phone: customer.phone,
             email: customer.email || null,
-            gstn: customer.gstn || null,
             whatsapp_number: customer.whatsapp_number || null,
           })
           .select()
@@ -310,7 +316,9 @@ export default function NewJobPage() {
     }
   };
 
-  const totalPrice = selectedZones.reduce((sum, z) => sum + z.price, 0);
+  const subtotalPrice = selectedZones.reduce((sum, z) => sum + z.price, 0);
+  const gstAmount = studioHasGstin && gstPercent > 0 ? Math.round(subtotalPrice * gstPercent / 100) : 0;
+  const totalPrice = subtotalPrice + gstAmount;
 
   return (
     <DashboardLayout>
@@ -447,14 +455,6 @@ export default function NewJobPage() {
                           placeholder="+91XXXXXXXXXX"
                         />
                       </div>
-                      <div>
-                        <Label>GSTN (Optional)</Label>
-                        <Input
-                          value={customer.gstn}
-                          onChange={(e) => setCustomer({ ...customer, gstn: e.target.value })}
-                          placeholder="GST Number"
-                        />
-                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -528,51 +528,19 @@ export default function NewJobPage() {
                   </div>
                 </div>
 
-                {/* Vehicle details */}
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Make *</Label>
-                    <Input
-                      value={vehicle.make}
-                      onChange={(e) => setVehicle({ ...vehicle, make: e.target.value })}
-                      placeholder="e.g., Toyota, Honda"
-                    />
-                  </div>
-                  <div>
-                    <Label>Model *</Label>
-                    <Input
-                      value={vehicle.model}
-                      onChange={(e) => setVehicle({ ...vehicle, model: e.target.value })}
-                      placeholder="e.g., Camry, City"
-                    />
-                  </div>
-                  <div>
-                    <Label>Year</Label>
-                    <Input
-                      value={vehicle.year}
-                      onChange={(e) => setVehicle({ ...vehicle, year: e.target.value })}
-                      placeholder="e.g., 2023"
-                    />
-                  </div>
-                  <div>
-                    <Label>Color</Label>
-                    <Input
-                      value={vehicle.color}
-                      onChange={(e) => setVehicle({ ...vehicle, color: e.target.value })}
-                      placeholder="e.g., Pearl White"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Label>Registration Number</Label>
-                    <Input
-                      value={vehicle.registration_number}
-                      onChange={(e) => setVehicle({ ...vehicle, registration_number: e.target.value.toUpperCase() })}
-                      placeholder="e.g., MH 12 AB 1234"
-                      className="uppercase font-mono"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Enter in uppercase</p>
-                  </div>
-                </div>
+                {/* Vehicle details - Cascading Dropdowns */}
+                <VehicleDropdowns
+                  make={vehicle.make}
+                  model={vehicle.model}
+                  year={vehicle.year}
+                  color={vehicle.color}
+                  registrationNumber={vehicle.registration_number}
+                  onMakeChange={(make) => setVehicle({ ...vehicle, make, model: "", year: "" })}
+                  onModelChange={(model) => setVehicle({ ...vehicle, model, year: "" })}
+                  onYearChange={(year) => setVehicle({ ...vehicle, year })}
+                  onColorChange={(color) => setVehicle({ ...vehicle, color })}
+                  onRegistrationChange={(registration_number) => setVehicle({ ...vehicle, registration_number })}
+                />
               </CardContent>
             </Card>
           )}
@@ -667,6 +635,33 @@ export default function NewJobPage() {
                 />
               )}
 
+              {/* GST Percentage (only if studio has GSTIN) */}
+              {studioHasGstin && (
+                <Card className="border-green-500/20 bg-green-500/5">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
+                      <Percent className="h-5 w-5 text-green-600" />
+                      <div className="flex-1">
+                        <Label>GST Percentage</Label>
+                        <p className="text-xs text-muted-foreground">Your studio has GSTIN registered</p>
+                      </div>
+                      <div className="w-24">
+                        <Input
+                          type="number"
+                          value={gstPercent}
+                          onChange={(e) => setGstPercent(Math.min(28, Math.max(0, parseInt(e.target.value) || 0)))}
+                          placeholder="18"
+                          min={0}
+                          max={28}
+                          className="text-center"
+                        />
+                      </div>
+                      <span className="text-muted-foreground">%</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Notes */}
               <Card>
                 <CardContent className="pt-6">
@@ -703,12 +698,6 @@ export default function NewJobPage() {
                       <div>
                         <span className="text-muted-foreground">Email:</span>{" "}
                         <span className="font-medium">{customer.email}</span>
-                      </div>
-                    )}
-                    {customer.gstn && (
-                      <div>
-                        <span className="text-muted-foreground">GSTN:</span>{" "}
-                        <span className="font-medium">{customer.gstn}</span>
                       </div>
                     )}
                   </div>
@@ -766,9 +755,21 @@ export default function NewJobPage() {
                         <span className="font-medium text-racing">₹{zone.price.toLocaleString()}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between items-center pt-4 border-t">
-                      <span className="text-lg font-semibold">Total</span>
-                      <span className="text-2xl font-bold text-racing">₹{totalPrice.toLocaleString()}</span>
+                    <div className="space-y-2 pt-4 border-t">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="font-medium">₹{subtotalPrice.toLocaleString()}</span>
+                      </div>
+                      {gstAmount > 0 && (
+                        <div className="flex justify-between items-center text-green-600">
+                          <span>GST ({gstPercent}%)</span>
+                          <span className="font-medium">₹{gstAmount.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center pt-2 border-t">
+                        <span className="text-lg font-semibold">Total</span>
+                        <span className="text-2xl font-bold text-racing">₹{totalPrice.toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

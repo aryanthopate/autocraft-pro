@@ -65,7 +65,6 @@ export function QuickJobForm({ onComplete, onCancel }: QuickJobFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [gstn, setGstn] = useState("");
 
   // Vehicle
   const [vehicleType, setVehicleType] = useState<VehicleType>("sedan");
@@ -104,7 +103,6 @@ export function QuickJobForm({ onComplete, onCancel }: QuickJobFormProps) {
         setName(data.name);
         setEmail(data.email || "");
         setWhatsapp(data.whatsapp_number || "");
-        setGstn(data.gstn || "");
         setExistingVehicles(data.cars || []);
         toast({ title: "Customer found!", description: `Welcome back, ${data.name}` });
       } else {
@@ -159,7 +157,7 @@ export function QuickJobForm({ onComplete, onCancel }: QuickJobFormProps) {
       if (!isExisting) {
         const { data: c, error } = await supabase
           .from("customers")
-          .insert({ studio_id: studio.id, name, phone, email: email || null, whatsapp_number: whatsapp || null, gstn: gstn || null })
+          .insert({ studio_id: studio.id, name, phone, email: email || null, whatsapp_number: whatsapp || null })
           .select()
           .single();
         if (error) throw error;
@@ -277,10 +275,6 @@ export function QuickJobForm({ onComplete, onCancel }: QuickJobFormProps) {
               <div>
                 <Label className="text-xs">WhatsApp</Label>
                 <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, "").slice(0, 10))} disabled={isExisting} />
-              </div>
-              <div>
-                <Label className="text-xs">GSTN</Label>
-                <Input value={gstn} onChange={(e) => setGstn(e.target.value.toUpperCase())} disabled={isExisting} />
               </div>
             </div>
           )}
