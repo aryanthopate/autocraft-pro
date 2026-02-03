@@ -15,6 +15,7 @@ import PendingApprovalPage from "./pages/PendingApprovalPage";
 import DashboardPage from "./pages/DashboardPage";
 import StaffDashboardPage from "./pages/StaffDashboardPage";
 import JobsPage from "./pages/JobsPage";
+import NewJobPage from "./pages/NewJobPage";
 import CustomersPage from "./pages/CustomersPage";
 import VehiclesPage from "./pages/VehiclesPage";
 import StaffPage from "./pages/StaffPage";
@@ -53,6 +54,11 @@ const App = () => (
           <Route path="/dashboard/jobs" element={
             <ProtectedRoute>
               <JobsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/jobs/new" element={
+            <ProtectedRoute>
+              <NewJobPage />
             </ProtectedRoute>
           } />
           <Route path="/dashboard/jobs/:jobId" element={
