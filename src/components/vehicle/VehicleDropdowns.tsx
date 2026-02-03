@@ -8,7 +8,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { VEHICLE_MAKES, VEHICLE_COLORS, getModelsForMake, getYearsForModel } from "@/data/vehicleData";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
+
+interface CarModel3D {
+  id: string;
+  make: string;
+  model: string;
+  year: number | null;
+  default_color: string | null;
+}
 
 interface VehicleDropdownsProps {
   make: string;
@@ -35,14 +44,60 @@ export function VehicleDropdowns({
   onColorChange,
   onRegistrationChange,
 }: VehicleDropdownsProps) {
+  const [carModels, setCarModels] = useState<CarModel3D[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isCustomMake, setIsCustomMake] = useState(false);
   const [isCustomModel, setIsCustomModel] = useState(false);
   const [isCustomYear, setIsCustomYear] = useState(false);
   const [isCustomColor, setIsCustomColor] = useState(false);
 
-  const availableModels = make && !isCustomMake ? getModelsForMake(make) : [];
-  const availableYears = make && model && !isCustomMake && !isCustomModel 
-    ? getYearsForModel(make, model) 
+  // Fetch car models from database
+  useEffect(() => {
+    const fetchCarModels = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("car_models_3d")
+          .select("id, make, model, year, default_color")
+          .eq("is_active", true)
+          .order("make");
+
+        if (error) {
+          console.error("Error fetching car models:", error);
+          return;
+        }
+
+        setCarModels(data || []);
+      } catch (err) {
+        console.error("Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCarModels();
+  }, []);
+
+  // Get unique makes from uploaded models
+  const availableMakes = [...new Set(carModels.map((m) => m.make))].sort();
+
+  // Get models for selected make
+  const availableModels = make && !isCustomMake
+    ? [...new Set(carModels.filter((m) => m.make === make).map((m) => m.model))].sort()
+    : [];
+
+  // Get years for selected make + model
+  const availableYears = make && model && !isCustomMake && !isCustomModel
+    ? [...new Set(carModels
+        .filter((m) => m.make === make && m.model === model && m.year)
+        .map((m) => m.year!))]
+        .sort((a, b) => b - a)
+    : [];
+
+  // Get colors for selected make + model
+  const availableColors = make && model && !isCustomMake && !isCustomModel
+    ? [...new Set(carModels
+        .filter((m) => m.make === make && m.model === model && m.default_color)
+        .map((m) => m.default_color!))]
     : [];
 
   // Reset downstream when upstream changes
@@ -50,12 +105,14 @@ export function VehicleDropdowns({
     if (isCustomMake) {
       setIsCustomModel(true);
       setIsCustomYear(true);
+      setIsCustomColor(true);
     }
   }, [isCustomMake]);
 
   useEffect(() => {
     if (isCustomModel && !isCustomMake) {
       setIsCustomYear(true);
+      setIsCustomColor(true);
     }
   }, [isCustomModel, isCustomMake]);
 
@@ -65,13 +122,16 @@ export function VehicleDropdowns({
       onMakeChange("");
       onModelChange("");
       onYearChange("");
+      onColorChange("");
     } else {
       setIsCustomMake(false);
       setIsCustomModel(false);
       setIsCustomYear(false);
+      setIsCustomColor(false);
       onMakeChange(value);
       onModelChange("");
       onYearChange("");
+      onColorChange("");
     }
   };
 
@@ -79,13 +139,26 @@ export function VehicleDropdowns({
     if (value === "__custom__") {
       setIsCustomModel(true);
       setIsCustomYear(true);
+      setIsCustomColor(true);
       onModelChange("");
       onYearChange("");
+      onColorChange("");
     } else {
       setIsCustomModel(false);
       setIsCustomYear(false);
+      setIsCustomColor(false);
       onModelChange(value);
       onYearChange("");
+      onColorChange("");
+
+      // Auto-set color if there's only one
+      const modelColors = carModels
+        .filter((m) => m.make === make && m.model === value && m.default_color)
+        .map((m) => m.default_color!);
+      const uniqueColors = [...new Set(modelColors)];
+      if (uniqueColors.length === 1) {
+        onColorChange(uniqueColors[0]);
+      }
     }
   };
 
@@ -109,17 +182,26 @@ export function VehicleDropdowns({
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Loading vehicle options...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="grid sm:grid-cols-2 gap-4">
-      {/* Make */}
+      {/* Make / Brand */}
       <div>
-        <Label>Make *</Label>
+        <Label>Brand *</Label>
         {isCustomMake ? (
           <div className="flex gap-2 mt-1.5">
             <Input
               value={make}
               onChange={(e) => onMakeChange(e.target.value)}
-              placeholder="Enter make (e.g., Toyota)"
+              placeholder="Enter brand (e.g., BMW)"
               className="flex-1"
             />
             <button
@@ -129,6 +211,7 @@ export function VehicleDropdowns({
                 onMakeChange("");
                 onModelChange("");
                 onYearChange("");
+                onColorChange("");
               }}
               className="px-3 py-2 text-sm bg-muted hover:bg-muted/80 rounded-md transition-colors"
             >
@@ -138,14 +221,20 @@ export function VehicleDropdowns({
         ) : (
           <Select value={make || undefined} onValueChange={handleMakeSelect}>
             <SelectTrigger className="mt-1.5">
-              <SelectValue placeholder="Select make" />
+              <SelectValue placeholder="Select brand" />
             </SelectTrigger>
-            <SelectContent className="bg-popover max-h-[300px]">
-              {VEHICLE_MAKES.map((m) => (
-                <SelectItem key={m.name} value={m.name}>
-                  {m.name}
-                </SelectItem>
-              ))}
+            <SelectContent className="bg-popover z-50 max-h-[300px]">
+              {availableMakes.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  No vehicles uploaded yet
+                </div>
+              ) : (
+                availableMakes.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))
+              )}
               <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-1">
                 ↳ None of these (enter manually)
               </SelectItem>
@@ -162,7 +251,7 @@ export function VehicleDropdowns({
             <Input
               value={model}
               onChange={(e) => onModelChange(e.target.value)}
-              placeholder="Enter model (e.g., Camry)"
+              placeholder="Enter model (e.g., M3)"
               className="flex-1"
               disabled={!make}
             />
@@ -173,6 +262,7 @@ export function VehicleDropdowns({
                   setIsCustomModel(false);
                   onModelChange("");
                   onYearChange("");
+                  onColorChange("");
                 }}
                 className="px-3 py-2 text-sm bg-muted hover:bg-muted/80 rounded-md transition-colors"
               >
@@ -183,14 +273,20 @@ export function VehicleDropdowns({
         ) : (
           <Select value={model || undefined} onValueChange={handleModelSelect} disabled={!make}>
             <SelectTrigger className="mt-1.5">
-              <SelectValue placeholder={make ? "Select model" : "Select make first"} />
+              <SelectValue placeholder={make ? "Select model" : "Select brand first"} />
             </SelectTrigger>
-            <SelectContent className="bg-popover max-h-[300px]">
-              {availableModels.map((m) => (
-                <SelectItem key={m.name} value={m.name}>
-                  {m.name}
-                </SelectItem>
-              ))}
+            <SelectContent className="bg-popover z-50 max-h-[300px]">
+              {availableModels.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  No models for this brand
+                </div>
+              ) : (
+                availableModels.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))
+              )}
               <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-1">
                 ↳ None of these (enter manually)
               </SelectItem>
@@ -229,12 +325,18 @@ export function VehicleDropdowns({
             <SelectTrigger className="mt-1.5">
               <SelectValue placeholder={model ? "Select year" : "Select model first"} />
             </SelectTrigger>
-            <SelectContent className="bg-popover max-h-[300px]">
-              {availableYears.map((y) => (
-                <SelectItem key={y} value={y.toString()}>
-                  {y}
-                </SelectItem>
-              ))}
+            <SelectContent className="bg-popover z-50 max-h-[300px]">
+              {availableYears.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  No year data available
+                </div>
+              ) : (
+                availableYears.map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
+                  </SelectItem>
+                ))
+              )}
               <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-1">
                 ↳ None of these (enter manually)
               </SelectItem>
@@ -246,7 +348,7 @@ export function VehicleDropdowns({
       {/* Color */}
       <div>
         <Label>Color</Label>
-        {isCustomColor ? (
+        {isCustomColor || isCustomModel || isCustomMake ? (
           <div className="flex gap-2 mt-1.5">
             <Input
               value={color}
@@ -254,34 +356,42 @@ export function VehicleDropdowns({
               placeholder="Enter color"
               className="flex-1"
             />
-            <button
-              type="button"
-              onClick={() => {
-                setIsCustomColor(false);
-                onColorChange("");
-              }}
-              className="px-3 py-2 text-sm bg-muted hover:bg-muted/80 rounded-md transition-colors"
-            >
-              Back
-            </button>
+            {!isCustomMake && !isCustomModel && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomColor(false);
+                  onColorChange("");
+                }}
+                className="px-3 py-2 text-sm bg-muted hover:bg-muted/80 rounded-md transition-colors"
+              >
+                Back
+              </button>
+            )}
           </div>
         ) : (
-          <Select value={color || undefined} onValueChange={handleColorSelect}>
+          <Select value={color || undefined} onValueChange={handleColorSelect} disabled={!model}>
             <SelectTrigger className="mt-1.5">
-              <SelectValue placeholder="Select color" />
+              <SelectValue placeholder={model ? "Select color" : "Select model first"} />
             </SelectTrigger>
-            <SelectContent className="bg-popover max-h-[300px]">
-              {VEHICLE_COLORS.map((c) => (
-                <SelectItem key={c.name} value={c.name}>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-4 h-4 rounded-full border border-border" 
-                      style={{ backgroundColor: c.hex }}
-                    />
-                    {c.name}
-                  </div>
-                </SelectItem>
-              ))}
+            <SelectContent className="bg-popover z-50 max-h-[300px]">
+              {availableColors.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  No color data available
+                </div>
+              ) : (
+                availableColors.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded-full border border-border"
+                        style={{ backgroundColor: c }}
+                      />
+                      {c}
+                    </div>
+                  </SelectItem>
+                ))
+              )}
               <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-1">
                 ↳ None of these (enter manually)
               </SelectItem>

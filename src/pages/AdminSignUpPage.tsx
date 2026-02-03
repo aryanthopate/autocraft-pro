@@ -9,20 +9,14 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-const ADMIN_SECRET_KEY = "DETAILFLOW_ADMIN_2024"; // In production, use environment variable
-
 const signUpSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters"),
   email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
-  secretKey: z.string().min(1, "Secret key is required"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
-}).refine((data) => data.secretKey === ADMIN_SECRET_KEY, {
-  message: "Invalid admin secret key",
-  path: ["secretKey"],
 });
 
 export default function AdminSignUpPage() {
@@ -36,7 +30,6 @@ export default function AdminSignUpPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    secretKey: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -65,7 +58,7 @@ export default function AdminSignUpPage() {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/admin`,
+          emailRedirectTo: `${window.location.origin}/admin-login`,
           data: {
             full_name: formData.fullName,
           },
@@ -148,7 +141,7 @@ export default function AdminSignUpPage() {
           <div className="mb-8">
             <h1 className="font-display text-3xl font-bold mb-2">Admin Registration</h1>
             <p className="text-muted-foreground">
-              Create an admin account with your secret key
+              Create an admin account to manage the platform
             </p>
           </div>
 
@@ -240,24 +233,6 @@ export default function AdminSignUpPage() {
               </div>
               {errors.confirmPassword && (
                 <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="secretKey">Admin Secret Key</Label>
-              <Input
-                id="secretKey"
-                type="password"
-                placeholder="Enter admin secret key"
-                value={formData.secretKey}
-                onChange={(e) =>
-                  setFormData({ ...formData, secretKey: e.target.value })
-                }
-                className={errors.secretKey ? "border-destructive" : ""}
-                disabled={isLoading}
-              />
-              {errors.secretKey && (
-                <p className="text-sm text-destructive">{errors.secretKey}</p>
               )}
             </div>
 
