@@ -44,8 +44,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         { name: "Settings", href: "/dashboard/settings", icon: Settings },
       ]
     : [
-        { name: "My Jobs", href: "/dashboard", icon: ClipboardList },
-        { name: "Customers", href: "/dashboard/customers", icon: Users },
+        { name: "My Jobs", href: "/staff", icon: ClipboardList },
         { name: "Vehicles", href: "/dashboard/vehicles", icon: Car },
       ];
 

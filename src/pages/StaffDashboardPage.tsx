@@ -11,7 +11,6 @@ import {
   Play,
   Send,
   Loader2,
-  Camera,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AnimatedCarSilhouette } from "@/components/car/AnimatedCarSilhouette";
+import { VehicleSilhouette, VehicleType } from "@/components/vehicles/VehicleSilhouette";
 
 interface Job {
   id: string;
@@ -38,7 +37,7 @@ interface Job {
   scheduled_date: string | null;
   notes: string | null;
   customer?: { name: string; phone: string };
-  car?: { make: string; model: string; year: number | null; color: string | null };
+  car?: { make: string; model: string; year: number | null; color: string | null; vehicle_type?: string };
 }
 
 interface JobZone {
@@ -457,6 +456,18 @@ export default function StaffDashboardPage() {
                     </div>
                   )}
 
+                  {/* Vehicle Visual */}
+                  {selectedJob.car && (
+                    <div className="p-4 border-b flex justify-center">
+                      <VehicleSilhouette
+                        vehicleType={(selectedJob.car?.vehicle_type as VehicleType) || "sedan"}
+                        selectedZones={[]}
+                        completedZones={zones.filter(z => z.completed).map(z => z.zone_name.toLowerCase().replace(/\s+/g, '_'))}
+                        interactive={false}
+                      />
+                    </div>
+                  )}
+
                   {/* Zones Checklist */}
                   {zones.length > 0 ? (
                     <div className="divide-y">
@@ -474,33 +485,30 @@ export default function StaffDashboardPage() {
                             <button
                               onClick={() => !zone.completed && handleCompleteZone(zone.id)}
                               disabled={selectedJob.status !== "in_progress" || zone.completed || updating}
-                              className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${
+                              className={`h-7 w-7 rounded-full flex items-center justify-center transition-colors ${
                                 zone.completed
                                   ? "bg-green-500 text-white"
                                   : selectedJob.status === "in_progress"
-                                  ? "border-2 border-muted-foreground/30 hover:border-green-500"
+                                  ? "border-2 border-muted-foreground/30 hover:border-green-500 hover:bg-green-500/10"
                                   : "border-2 border-muted-foreground/20"
                               }`}
                             >
-                              {zone.completed && <CheckCircle2 className="h-4 w-4" />}
+                              {zone.completed && <CheckCircle2 className="h-5 w-5" />}
                             </button>
                             <div>
                               <p className={`font-medium ${zone.completed ? "line-through text-muted-foreground" : ""}`}>
                                 {zone.zone_name}
                               </p>
-                              <p className="text-xs text-muted-foreground capitalize">
-                                {zone.zone_type} • {Array.isArray(zone.services) ? zone.services.length : 0} services
+                              <p className="text-xs text-muted-foreground">
+                                {Array.isArray(zone.services) ? zone.services.join(", ") : "No services"}
                               </p>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={selectedJob.status !== "in_progress"}
-                          >
-                            <Camera className="h-4 w-4 mr-1" />
-                            Media
-                          </Button>
+                          {zone.completed && (
+                            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
+                              Done
+                            </Badge>
+                          )}
                         </motion.div>
                       ))}
                     </div>
