@@ -20,7 +20,8 @@ import {
   Upload,
   Box,
   Trash2,
-  Loader2
+  Loader2,
+  Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +46,7 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
+import { Model3DPreview } from "@/components/admin/Model3DPreview";
 
 interface Studio {
   id: string;
@@ -132,6 +134,7 @@ export default function AdminPage() {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewModel, setPreviewModel] = useState<CarModel3D | null>(null);
 
   useEffect(() => {
     fetchStudios();
@@ -436,22 +439,44 @@ export default function AdminPage() {
                             </p>
                           </div>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                          onClick={() => handleDelete3DModel(model)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => setPreviewModel(model)}
+                            title="Preview model"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                            onClick={() => handleDelete3DModel(model)}
+                            title="Delete model"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="mt-4 pt-4 border-t">
-                        <p className="text-xs text-muted-foreground truncate">
-                          {model.model_url}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Added: {format(new Date(model.created_at), "MMM d, yyyy")}
-                        </p>
+                      <div className="mt-4 pt-4 border-t flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground truncate max-w-[180px]">
+                            {model.model_url.split('/').pop()}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Added: {format(new Date(model.created_at), "MMM d, yyyy")}
+                          </p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setPreviewModel(model)}
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Preview
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -897,6 +922,17 @@ export default function AdminPage() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* 3D Model Preview Dialog */}
+      {previewModel && (
+        <Model3DPreview
+          open={!!previewModel}
+          onOpenChange={(open) => !open && setPreviewModel(null)}
+          modelUrl={previewModel.model_url}
+          modelName={`${previewModel.make} ${previewModel.model}${previewModel.year ? ` (${previewModel.year})` : ''}`}
+          defaultColor={previewModel.default_color || "#FF6600"}
+        />
+      )}
     </div>
   );
 }
