@@ -83,13 +83,12 @@ export default function AdminSignUpPage() {
       }
 
       if (authData.user) {
-        // Add to admins table
-        const { error: adminError } = await supabase
-          .from("admins")
-          .insert({
-            user_id: authData.user.id,
-            email: formData.email,
-            full_name: formData.fullName,
+        // Use the secure function to add admin (bypasses RLS)
+        const { data: adminResult, error: adminError } = await supabase
+          .rpc("create_admin_on_signup", {
+            p_user_id: authData.user.id,
+            p_email: formData.email,
+            p_full_name: formData.fullName,
           });
 
         if (adminError) {
@@ -97,7 +96,7 @@ export default function AdminSignUpPage() {
           toast({
             variant: "destructive",
             title: "Error",
-            description: "Failed to create admin account. Please contact support.",
+            description: "Failed to create admin account: " + adminError.message,
           });
           return;
         }
