@@ -33,7 +33,19 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
         .maybeSingle();
 
       if (error || !adminData) {
-        navigate("/dashboard");
+        // Get user's profile to determine where to redirect
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        // Redirect based on role
+        if (profile?.role === "owner") {
+          navigate("/dashboard");
+        } else {
+          navigate("/staff");
+        }
         return;
       }
 
