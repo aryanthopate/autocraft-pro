@@ -24,8 +24,8 @@ import JobDetailPage from "./pages/JobDetailPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import NotFound from "./pages/NotFound";
 import AdminPage from "./pages/AdminPage";
-import AdminLoginPage from "./pages/AdminLoginPage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { AdminProtectedRoute } from "./components/auth/AdminProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -101,9 +101,12 @@ const App = () => (
             </ProtectedRoute>
           } />
           
-          {/* Admin Routes */}
-          <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          {/* Admin Routes - Protected by admin role check */}
+          <Route path="/admin" element={
+            <AdminProtectedRoute>
+              <AdminPage />
+            </AdminProtectedRoute>
+          } />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
