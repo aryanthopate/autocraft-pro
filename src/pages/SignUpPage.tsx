@@ -26,6 +26,12 @@ const signupSchema = z.object({
     .trim()
     .min(7, "Please enter a valid phone number")
     .max(20, "Phone number is too long"),
+  gstin: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, "Please enter a valid GSTIN")
+    .optional()
+    .or(z.literal("")),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -42,6 +48,7 @@ export default function SignUpPage() {
     ownerName: "",
     email: "",
     phone: "",
+    gstin: "",
     password: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -77,6 +84,7 @@ export default function SignUpPage() {
             full_name: formData.ownerName,
             phone: formData.phone,
             studio_name: formData.studioName,
+            gstin: formData.gstin || null,
             role: "owner",
           },
         },
@@ -251,6 +259,27 @@ export default function SignUpPage() {
                   <p className="text-sm text-destructive">{errors.phone}</p>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gstin">GSTIN (Optional)</Label>
+              <Input
+                id="gstin"
+                placeholder="22AAAAA0000A1Z5"
+                value={formData.gstin}
+                onChange={(e) =>
+                  setFormData({ ...formData, gstin: e.target.value.toUpperCase() })
+                }
+                className={errors.gstin ? "border-destructive" : ""}
+                disabled={isLoading}
+                maxLength={15}
+              />
+              {errors.gstin && (
+                <p className="text-sm text-destructive">{errors.gstin}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Your business GST identification number
+              </p>
             </div>
 
             <div className="space-y-2">

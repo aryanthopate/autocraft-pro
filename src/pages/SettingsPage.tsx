@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Building2, Key, Bell, MessageCircle, Save, Loader2, Eye, EyeOff } from "lucide-react";
+import { Building2, Key, Bell, MessageCircle, Save, Loader2, Eye, EyeOff, FileText } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -15,11 +15,68 @@ export default function SettingsPage() {
   const { studio } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [savingStudio, setSavingStudio] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
-  const [whatsappSettings, setWhatsappSettings] = useState({
-    api_key: (studio as any)?.whatsapp_api_key || "",
-    phone_number: (studio as any)?.whatsapp_phone_number || "",
+  const [studioInfo, setStudioInfo] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    gstin: "",
   });
+  const [whatsappSettings, setWhatsappSettings] = useState({
+    api_key: "",
+    phone_number: "",
+  });
+
+  useEffect(() => {
+    if (studio) {
+      setStudioInfo({
+        name: studio.name || "",
+        email: studio.email || "",
+        phone: studio.phone || "",
+        address: studio.address || "",
+        gstin: (studio as any)?.gstin || "",
+      });
+      setWhatsappSettings({
+        api_key: (studio as any)?.whatsapp_api_key || "",
+        phone_number: (studio as any)?.whatsapp_phone_number || "",
+      });
+    }
+  }, [studio]);
+
+  const saveStudioInfo = async () => {
+    if (!studio?.id) return;
+
+    setSavingStudio(true);
+    try {
+      const { error } = await supabase
+        .from("studios")
+        .update({
+          name: studioInfo.name,
+          email: studioInfo.email || null,
+          phone: studioInfo.phone || null,
+          address: studioInfo.address || null,
+          gstin: studioInfo.gstin || null,
+        })
+        .eq("id", studio.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Settings saved",
+        description: "Studio information has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Could not save settings.",
+      });
+    } finally {
+      setSavingStudio(false);
+    }
+  };
 
   const saveWhatsAppSettings = async () => {
     if (!studio?.id) return;
@@ -85,25 +142,57 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Studio Name</Label>
-                <Input value={studio?.name || ""} disabled />
+                <Input 
+                  value={studioInfo.name} 
+                  onChange={(e) => setStudioInfo({ ...studioInfo, name: e.target.value })}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input value={studio?.email || ""} disabled />
+                  <Input 
+                    value={studioInfo.email} 
+                    onChange={(e) => setStudioInfo({ ...studioInfo, email: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Phone</Label>
-                  <Input value={studio?.phone || ""} disabled />
+                  <Input 
+                    value={studioInfo.phone} 
+                    onChange={(e) => setStudioInfo({ ...studioInfo, phone: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Address</Label>
-                <Input value={studio?.address || ""} disabled />
+                <Input 
+                  value={studioInfo.address} 
+                  onChange={(e) => setStudioInfo({ ...studioInfo, address: e.target.value })}
+                />
               </div>
-              <p className="text-sm text-muted-foreground">
-                Contact support to update studio information.
-              </p>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  GSTIN (Business Tax ID)
+                </Label>
+                <Input 
+                  value={studioInfo.gstin} 
+                  onChange={(e) => setStudioInfo({ ...studioInfo, gstin: e.target.value.toUpperCase() })}
+                  placeholder="22AAAAA0000A1Z5"
+                  maxLength={15}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your GST Identification Number for invoicing
+                </p>
+              </div>
+              <Button onClick={saveStudioInfo} disabled={savingStudio}>
+                {savingStudio ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Studio Info
+              </Button>
             </CardContent>
           </Card>
         </motion.div>

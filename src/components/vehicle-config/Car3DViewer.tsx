@@ -1,0 +1,422 @@
+import { Suspense, useRef, useState, useEffect } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { OrbitControls, Environment, ContactShadows, useGLTF, Html, Center } from "@react-three/drei";
+import { motion, AnimatePresence } from "framer-motion";
+import * as THREE from "three";
+import { RotateCcw, ZoomIn, ZoomOut, Maximize2, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+interface Hotspot3D {
+  id: string;
+  name: string;
+  position: [number, number, number];
+  zone_type: string;
+}
+
+interface SelectedZone {
+  id: string;
+  name: string;
+  services: string[];
+  price: number;
+}
+
+interface Car3DViewerProps {
+  carColor?: string;
+  selectedZones: SelectedZone[];
+  onHotspotClick: (hotspot: Hotspot3D) => void;
+  readOnly?: boolean;
+}
+
+// Premium BMW-style hotspots for car zones
+const CAR_HOTSPOTS: Hotspot3D[] = [
+  { id: "hood", name: "Hood", position: [0, 0.8, 1.5], zone_type: "exterior" },
+  { id: "roof", name: "Roof", position: [0, 1.2, 0], zone_type: "exterior" },
+  { id: "trunk", name: "Trunk", position: [0, 0.7, -1.5], zone_type: "exterior" },
+  { id: "front_bumper", name: "Front Bumper", position: [0, 0.3, 2], zone_type: "exterior" },
+  { id: "rear_bumper", name: "Rear Bumper", position: [0, 0.3, -2], zone_type: "exterior" },
+  { id: "driver_door", name: "Driver Door", position: [0.9, 0.6, 0.3], zone_type: "exterior" },
+  { id: "passenger_door", name: "Passenger Door", position: [-0.9, 0.6, 0.3], zone_type: "exterior" },
+  { id: "front_left_wheel", name: "Front Left Wheel", position: [0.8, 0.3, 1.2], zone_type: "wheels" },
+  { id: "front_right_wheel", name: "Front Right Wheel", position: [-0.8, 0.3, 1.2], zone_type: "wheels" },
+  { id: "rear_left_wheel", name: "Rear Left Wheel", position: [0.8, 0.3, -1.2], zone_type: "wheels" },
+  { id: "rear_right_wheel", name: "Rear Right Wheel", position: [-0.8, 0.3, -1.2], zone_type: "wheels" },
+  { id: "windshield", name: "Windshield", position: [0, 1, 0.8], zone_type: "glass" },
+  { id: "rear_windshield", name: "Rear Windshield", position: [0, 1, -0.8], zone_type: "glass" },
+  { id: "headlight_left", name: "Left Headlight", position: [0.6, 0.5, 1.8], zone_type: "lighting" },
+  { id: "headlight_right", name: "Right Headlight", position: [-0.6, 0.5, 1.8], zone_type: "lighting" },
+];
+
+// Premium 3D Car Model Component
+function CarModel({ color = "#FF6600" }: { color: string }) {
+  const meshRef = useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      // Subtle breathing animation
+      meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.02;
+    }
+  });
+
+  // Create a premium car shape using Three.js primitives
+  return (
+    <group ref={meshRef}>
+      {/* Main Body */}
+      <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.8, 0.5, 4]} />
+        <meshStandardMaterial 
+          color={color} 
+          metalness={0.9} 
+          roughness={0.1}
+          envMapIntensity={1.5}
+        />
+      </mesh>
+      
+      {/* Cabin */}
+      <mesh position={[0, 0.85, -0.2]} castShadow>
+        <boxGeometry args={[1.6, 0.5, 2]} />
+        <meshStandardMaterial 
+          color={color} 
+          metalness={0.9} 
+          roughness={0.1}
+          envMapIntensity={1.5}
+        />
+      </mesh>
+      
+      {/* Windshield */}
+      <mesh position={[0, 0.9, 0.85]} rotation={[Math.PI * 0.15, 0, 0]}>
+        <boxGeometry args={[1.5, 0.5, 0.05]} />
+        <meshStandardMaterial 
+          color="#1a1a2e" 
+          metalness={0.5} 
+          roughness={0}
+          transparent
+          opacity={0.8}
+        />
+      </mesh>
+      
+      {/* Rear Windshield */}
+      <mesh position={[0, 0.9, -1.15]} rotation={[-Math.PI * 0.15, 0, 0]}>
+        <boxGeometry args={[1.5, 0.45, 0.05]} />
+        <meshStandardMaterial 
+          color="#1a1a2e" 
+          metalness={0.5} 
+          roughness={0}
+          transparent
+          opacity={0.8}
+        />
+      </mesh>
+      
+      {/* Side Windows */}
+      <mesh position={[0.85, 0.85, -0.2]}>
+        <boxGeometry args={[0.05, 0.35, 1.6]} />
+        <meshStandardMaterial color="#1a1a2e" transparent opacity={0.7} />
+      </mesh>
+      <mesh position={[-0.85, 0.85, -0.2]}>
+        <boxGeometry args={[0.05, 0.35, 1.6]} />
+        <meshStandardMaterial color="#1a1a2e" transparent opacity={0.7} />
+      </mesh>
+      
+      {/* Wheels */}
+      {[[0.85, 0.25, 1.2], [-0.85, 0.25, 1.2], [0.85, 0.25, -1.2], [-0.85, 0.25, -1.2]].map((pos, i) => (
+        <group key={i} position={pos as [number, number, number]}>
+          <mesh rotation={[0, 0, Math.PI / 2]} castShadow>
+            <cylinderGeometry args={[0.3, 0.3, 0.2, 32]} />
+            <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.3} />
+          </mesh>
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.2, 0.2, 0.22, 16]} />
+            <meshStandardMaterial color="#404040" metalness={0.9} roughness={0.2} />
+          </mesh>
+        </group>
+      ))}
+      
+      {/* Headlights */}
+      <mesh position={[0.5, 0.45, 1.98]}>
+        <boxGeometry args={[0.3, 0.15, 0.05]} />
+        <meshStandardMaterial color="#ffffff" emissive="#ffffaa" emissiveIntensity={0.5} />
+      </mesh>
+      <mesh position={[-0.5, 0.45, 1.98]}>
+        <boxGeometry args={[0.3, 0.15, 0.05]} />
+        <meshStandardMaterial color="#ffffff" emissive="#ffffaa" emissiveIntensity={0.5} />
+      </mesh>
+      
+      {/* Taillights */}
+      <mesh position={[0.65, 0.45, -1.98]}>
+        <boxGeometry args={[0.4, 0.1, 0.05]} />
+        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.3} />
+      </mesh>
+      <mesh position={[-0.65, 0.45, -1.98]}>
+        <boxGeometry args={[0.4, 0.1, 0.05]} />
+        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.3} />
+      </mesh>
+      
+      {/* Grille */}
+      <mesh position={[0, 0.35, 1.98]}>
+        <boxGeometry args={[0.8, 0.25, 0.02]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.9} roughness={0.3} />
+      </mesh>
+    </group>
+  );
+}
+
+// Interactive Hotspot Component
+function Hotspot3DPoint({ 
+  hotspot, 
+  isSelected, 
+  onClick,
+  readOnly
+}: { 
+  hotspot: Hotspot3D; 
+  isSelected: boolean;
+  onClick: () => void;
+  readOnly: boolean;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const meshRef = useRef<THREE.Mesh>(null);
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      // Pulsing animation
+      const scale = isSelected 
+        ? 1.3 + Math.sin(state.clock.elapsedTime * 4) * 0.2
+        : 1 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
+      meshRef.current.scale.setScalar(hovered ? scale * 1.2 : scale);
+    }
+  });
+
+  return (
+    <group position={hotspot.position}>
+      {/* Outer glow ring */}
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[0.08, 16, 16]} />
+        <meshStandardMaterial 
+          color={isSelected ? "#00ff00" : "#ff6600"} 
+          emissive={isSelected ? "#00ff00" : "#ff6600"}
+          emissiveIntensity={hovered ? 1 : 0.5}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+      
+      {/* Inner core */}
+      <mesh>
+        <sphereGeometry args={[0.04, 16, 16]} />
+        <meshStandardMaterial 
+          color="#ffffff" 
+          emissive="#ffffff"
+          emissiveIntensity={0.8}
+        />
+      </mesh>
+      
+      {/* Clickable area */}
+      <mesh
+        onPointerOver={() => !readOnly && setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+        onClick={() => !readOnly && onClick()}
+      >
+        <sphereGeometry args={[0.15, 8, 8]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
+      
+      {/* Label on hover */}
+      {hovered && (
+        <Html distanceFactor={5} position={[0, 0.2, 0]}>
+          <div className="px-2 py-1 bg-card/95 backdrop-blur border border-border rounded-lg shadow-lg whitespace-nowrap">
+            <span className="text-xs font-medium">{hotspot.name}</span>
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+// Camera Controls
+function CameraController() {
+  const { camera } = useThree();
+  
+  useEffect(() => {
+    camera.position.set(4, 2.5, 4);
+    camera.lookAt(0, 0.5, 0);
+  }, [camera]);
+  
+  return null;
+}
+
+// Loading Component
+function LoadingFallback() {
+  return (
+    <Html center>
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-racing" />
+        <span className="text-sm text-muted-foreground">Loading 3D Model...</span>
+      </div>
+    </Html>
+  );
+}
+
+export function Car3DViewer({ 
+  carColor = "#FF6600", 
+  selectedZones, 
+  onHotspotClick,
+  readOnly = false 
+}: Car3DViewerProps) {
+  const [isAutoRotate, setIsAutoRotate] = useState(true);
+  const controlsRef = useRef<any>(null);
+
+  const handleReset = () => {
+    if (controlsRef.current) {
+      controlsRef.current.reset();
+    }
+  };
+
+  const totalPrice = selectedZones.reduce((sum, z) => sum + z.price, 0);
+
+  return (
+    <div className="relative">
+      {/* 3D Canvas */}
+      <div className="relative h-[450px] md:h-[550px] rounded-2xl overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border border-border">
+        {/* Ambient lighting effects */}
+        <div className="absolute inset-0 bg-gradient-radial from-racing/10 via-transparent to-transparent pointer-events-none z-10" />
+        
+        <Canvas 
+          shadows 
+          camera={{ position: [4, 2.5, 4], fov: 45 }}
+          gl={{ antialias: true, alpha: true }}
+        >
+          <Suspense fallback={<LoadingFallback />}>
+            {/* Lighting */}
+            <ambientLight intensity={0.4} />
+            <spotLight 
+              position={[10, 10, 5]} 
+              angle={0.3} 
+              penumbra={1} 
+              intensity={1} 
+              castShadow 
+              shadow-mapSize={[2048, 2048]}
+            />
+            <spotLight 
+              position={[-10, 10, -5]} 
+              angle={0.3} 
+              penumbra={1} 
+              intensity={0.5}
+            />
+            <pointLight position={[0, 5, 0]} intensity={0.5} color="#ff6600" />
+            
+            {/* Environment */}
+            <Environment preset="city" />
+            
+            {/* Car Model */}
+            <Center>
+              <CarModel color={carColor} />
+            </Center>
+            
+            {/* Hotspots */}
+            {CAR_HOTSPOTS.map((hotspot) => (
+              <Hotspot3DPoint
+                key={hotspot.id}
+                hotspot={hotspot}
+                isSelected={selectedZones.some(z => z.id === hotspot.id)}
+                onClick={() => onHotspotClick(hotspot)}
+                readOnly={readOnly}
+              />
+            ))}
+            
+            {/* Floor */}
+            <ContactShadows 
+              position={[0, -0.05, 0]} 
+              opacity={0.6} 
+              scale={10} 
+              blur={2} 
+              far={4}
+            />
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+              <planeGeometry args={[20, 20]} />
+              <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.8} />
+            </mesh>
+            
+            {/* Camera Controls */}
+            <CameraController />
+            <OrbitControls 
+              ref={controlsRef}
+              autoRotate={isAutoRotate}
+              autoRotateSpeed={0.5}
+              enablePan={false}
+              minDistance={3}
+              maxDistance={8}
+              minPolarAngle={Math.PI * 0.2}
+              maxPolarAngle={Math.PI * 0.5}
+            />
+          </Suspense>
+        </Canvas>
+        
+        {/* Control Buttons */}
+        <div className="absolute bottom-4 left-4 flex gap-2 z-20">
+          <Button
+            size="sm"
+            variant={isAutoRotate ? "default" : "outline"}
+            onClick={() => setIsAutoRotate(!isAutoRotate)}
+            className="backdrop-blur bg-card/80"
+          >
+            <RotateCcw className={cn("h-4 w-4", isAutoRotate && "animate-spin")} />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReset}
+            className="backdrop-blur bg-card/80"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {/* Instructions */}
+        <div className="absolute top-4 left-4 z-20">
+          <div className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur border border-border">
+            <span className="text-xs text-muted-foreground">
+              🖱️ Drag to rotate • Scroll to zoom • Click hotspots to add services
+            </span>
+          </div>
+        </div>
+        
+        {/* Car Color Badge */}
+        <div className="absolute top-4 right-4 z-20">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/80 backdrop-blur border border-border">
+            <div 
+              className="h-4 w-4 rounded-full border-2 border-white/20"
+              style={{ backgroundColor: carColor }}
+            />
+            <span className="text-xs font-medium">BMW M3 GTS</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Selected Zones Summary */}
+      {selectedZones.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 p-4 rounded-xl bg-card border border-border"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm">Selected Zones ({selectedZones.length})</h3>
+            <Badge variant="outline" className="bg-racing/10 text-racing border-racing/30">
+              ₹{totalPrice.toLocaleString()}
+            </Badge>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {selectedZones.map((zone) => (
+              <Badge key={zone.id} variant="secondary" className="text-xs">
+                {zone.name} • {zone.services.length} services
+              </Badge>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+export { CAR_HOTSPOTS };
+export type { Hotspot3D, SelectedZone };

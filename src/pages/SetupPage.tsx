@@ -67,6 +67,7 @@ export default function SetupPage() {
             owner_id: user.id,
             email: user.email,
             phone: metadata.phone,
+            gstin: metadata.gstin || null,
           })
           .select()
           .single();

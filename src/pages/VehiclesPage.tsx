@@ -131,7 +131,8 @@ export default function VehiclesPage() {
         model: formData.model,
         year: formData.year ? parseInt(formData.year) : null,
         color: formData.color || null,
-        license_plate: formData.license_plate || null,
+        license_plate: formData.license_plate?.toUpperCase() || null,
+        registration_number: formData.license_plate?.toUpperCase() || null,
       });
 
       if (error) throw error;
@@ -270,15 +271,19 @@ export default function VehiclesPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="license_plate">License Plate</Label>
+                  <Label htmlFor="license_plate">Registration Number</Label>
                   <Input
                     id="license_plate"
-                    placeholder="ABC-1234"
+                    placeholder="MH 01 AB 1234"
                     value={formData.license_plate}
                     onChange={(e) =>
-                      setFormData({ ...formData, license_plate: e.target.value })
+                      setFormData({ ...formData, license_plate: e.target.value.toUpperCase() })
                     }
+                    className="uppercase font-mono"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Enter vehicle registration number
+                  </p>
                 </div>
                 <div className="flex justify-end gap-3">
                   <Button
@@ -400,7 +405,7 @@ export default function VehiclesPage() {
                         </div>
                       )}
                       {vehicle.license_plate && (
-                        <p className="text-sm font-mono bg-muted px-2 py-1 rounded inline-block">
+                        <p className="text-sm font-mono bg-muted px-2 py-1 rounded inline-block uppercase">
                           {vehicle.license_plate}
                         </p>
                       )}

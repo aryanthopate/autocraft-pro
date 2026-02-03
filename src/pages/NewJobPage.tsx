@@ -20,6 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { VehicleConfigurator, VehicleType } from "@/components/vehicle-config";
+import { Car3DViewer, CAR_HOTSPOTS, Hotspot3D, SelectedZone as Zone3D } from "@/components/vehicle-config/Car3DViewer";
+import { ServiceSelector } from "@/components/vehicle-config/ServiceSelector";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +63,34 @@ const STEPS: { id: Step; label: string; icon: React.ElementType }[] = [
   { id: "review", label: "Review", icon: Check },
 ];
 
+// Helper function to convert color names to hex values
+const getCarColorHex = (color: string | undefined): string => {
+  if (!color) return "#FF6600"; // Default orange (BMW M3 GTS color)
+  
+  const colorMap: Record<string, string> = {
+    "white": "#ffffff",
+    "pearl white": "#f5f5f5",
+    "black": "#1a1a1a",
+    "silver": "#c0c0c0",
+    "grey": "#808080",
+    "gray": "#808080",
+    "red": "#dc2626",
+    "blue": "#2563eb",
+    "navy": "#1e3a5f",
+    "green": "#16a34a",
+    "orange": "#FF6600",
+    "yellow": "#eab308",
+    "brown": "#78350f",
+    "beige": "#d4c4a8",
+    "maroon": "#7f1d1d",
+    "gold": "#b8860b",
+    "champagne": "#f7e7ce",
+  };
+  
+  const lowerColor = color.toLowerCase();
+  return colorMap[lowerColor] || "#FF6600";
+};
+
 export default function NewJobPage() {
   const navigate = useNavigate();
   const { studio, profile } = useAuth();
@@ -94,7 +124,9 @@ export default function NewJobPage() {
 
   // Services state
   const [selectedZones, setSelectedZones] = useState<SelectedZone[]>([]);
+  const [activeHotspot, setActiveHotspot] = useState<Hotspot3D | null>(null);
   const [notes, setNotes] = useState("");
+  const [use3DViewer, setUse3DViewer] = useState(true);
 
   const handlePhoneSearch = async () => {
     if (phoneSearch.length < 10) {
@@ -534,9 +566,11 @@ export default function NewJobPage() {
                     <Label>Registration Number</Label>
                     <Input
                       value={vehicle.registration_number}
-                      onChange={(e) => setVehicle({ ...vehicle, registration_number: e.target.value })}
-                      placeholder="e.g., MH12AB1234"
+                      onChange={(e) => setVehicle({ ...vehicle, registration_number: e.target.value.toUpperCase() })}
+                      placeholder="e.g., MH 12 AB 1234"
+                      className="uppercase font-mono"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">Enter in uppercase</p>
                   </div>
                 </div>
               </CardContent>
@@ -545,24 +579,93 @@ export default function NewJobPage() {
 
           {currentStep === "services" && (
             <div className="space-y-6">
+              {/* 3D Mode Toggle */}
+              <div className="flex items-center justify-end gap-2">
+                <span className="text-sm text-muted-foreground">View Mode:</span>
+                <div className="flex bg-muted rounded-lg p-1">
+                  <button
+                    onClick={() => setUse3DViewer(true)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                      use3DViewer ? "bg-racing text-white" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    3D Model
+                  </button>
+                  <button
+                    onClick={() => setUse3DViewer(false)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                      !use3DViewer ? "bg-racing text-white" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    2D View
+                  </button>
+                </div>
+              </div>
+
               <Card className="overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-racing/10 to-primary/10">
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-racing" />
-                    Configure Services
+                    {use3DViewer ? "Premium 3D Configurator" : "Configure Services"}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Rotate the vehicle and tap on zones to add services
+                    {use3DViewer 
+                      ? `${vehicle.make} ${vehicle.model} - ${vehicle.color || "Orange"} • Rotate and click hotspots`
+                      : "Rotate the vehicle and tap on zones to add services"
+                    }
                   </p>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <VehicleConfigurator
-                    vehicleType={vehicle.vehicle_type}
-                    selectedZones={selectedZones}
-                    onZonesChange={setSelectedZones}
-                  />
+                  {use3DViewer ? (
+                    <Car3DViewer
+                      carColor={getCarColorHex(vehicle.color)}
+                      selectedZones={selectedZones}
+                      onHotspotClick={(hotspot) => setActiveHotspot(hotspot)}
+                    />
+                  ) : (
+                    <VehicleConfigurator
+                      vehicleType={vehicle.vehicle_type}
+                      selectedZones={selectedZones}
+                      onZonesChange={setSelectedZones}
+                    />
+                  )}
                 </CardContent>
               </Card>
+
+              {/* Service Selector for 3D viewer */}
+              {use3DViewer && activeHotspot && (
+                <ServiceSelector
+                  open={!!activeHotspot}
+                  onClose={() => setActiveHotspot(null)}
+                  hotspot={{
+                    id: activeHotspot.id,
+                    name: activeHotspot.name,
+                    zone_type: activeHotspot.zone_type,
+                    x: 0,
+                    y: 0,
+                  }}
+                  existingServices={selectedZones.find(z => z.id === activeHotspot.id)?.services || []}
+                  existingPrice={selectedZones.find(z => z.id === activeHotspot.id)?.price || 0}
+                  onSave={(services, price) => {
+                    const existingIndex = selectedZones.findIndex(z => z.id === activeHotspot.id);
+                    if (existingIndex >= 0) {
+                      const updated = [...selectedZones];
+                      updated[existingIndex] = { ...updated[existingIndex], services, price };
+                      setSelectedZones(updated);
+                    } else {
+                      setSelectedZones([...selectedZones, {
+                        id: activeHotspot.id,
+                        name: activeHotspot.name,
+                        services,
+                        price,
+                      }]);
+                    }
+                    setActiveHotspot(null);
+                  }}
+                />
+              )}
 
               {/* Notes */}
               <Card>

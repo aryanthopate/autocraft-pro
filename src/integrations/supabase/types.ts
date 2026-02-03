@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admins: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cars: {
         Row: {
           color: string | null
@@ -570,6 +597,7 @@ export type Database = {
           address: string | null
           created_at: string
           email: string | null
+          gstin: string | null
           id: string
           join_key: string
           name: string
@@ -583,6 +611,7 @@ export type Database = {
           address?: string | null
           created_at?: string
           email?: string | null
+          gstin?: string | null
           id?: string
           join_key: string
           name: string
@@ -596,6 +625,7 @@ export type Database = {
           address?: string | null
           created_at?: string
           email?: string | null
+          gstin?: string | null
           id?: string
           join_key?: string
           name?: string
@@ -714,6 +744,7 @@ export type Database = {
     Functions: {
       generate_join_key: { Args: never; Returns: string }
       get_user_studio_id: { Args: { p_user_id: string }; Returns: string }
+      is_admin: { Args: { p_user_id: string }; Returns: boolean }
       is_studio_owner: {
         Args: { p_studio_id: string; p_user_id: string }
         Returns: boolean
@@ -733,7 +764,7 @@ export type Database = {
         | "cancelled"
       staff_status: "pending" | "approved" | "rejected"
       transport_type: "pickup" | "drop" | "both" | "none"
-      user_role: "owner" | "staff"
+      user_role: "owner" | "staff" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -871,7 +902,7 @@ export const Constants = {
       ],
       staff_status: ["pending", "approved", "rejected"],
       transport_type: ["pickup", "drop", "both", "none"],
-      user_role: ["owner", "staff"],
+      user_role: ["owner", "staff", "admin"],
     },
   },
 } as const
