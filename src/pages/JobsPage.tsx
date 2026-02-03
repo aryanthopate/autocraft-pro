@@ -242,7 +242,7 @@ export default function JobsPage() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button disabled={vehicles.length === 0}>
+              <Button onClick={() => navigate("/dashboard/jobs/new")}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Job
               </Button>

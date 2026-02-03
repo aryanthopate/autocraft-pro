@@ -17,46 +17,58 @@ export type Database = {
       cars: {
         Row: {
           color: string | null
+          condition_notes: string | null
           created_at: string
           customer_id: string
           existing_modifications: string | null
           id: string
           license_plate: string | null
           make: string
+          mileage: number | null
           model: string
           notes: string | null
+          registration_number: string | null
           studio_id: string
           updated_at: string
+          vehicle_type: string | null
           vin: string | null
           year: number | null
         }
         Insert: {
           color?: string | null
+          condition_notes?: string | null
           created_at?: string
           customer_id: string
           existing_modifications?: string | null
           id?: string
           license_plate?: string | null
           make: string
+          mileage?: number | null
           model: string
           notes?: string | null
+          registration_number?: string | null
           studio_id: string
           updated_at?: string
+          vehicle_type?: string | null
           vin?: string | null
           year?: number | null
         }
         Update: {
           color?: string | null
+          condition_notes?: string | null
           created_at?: string
           customer_id?: string
           existing_modifications?: string | null
           id?: string
           license_plate?: string | null
           make?: string
+          mileage?: number | null
           model?: string
           notes?: string | null
+          registration_number?: string | null
           studio_id?: string
           updated_at?: string
+          vehicle_type?: string | null
           vin?: string | null
           year?: number | null
         }
@@ -82,34 +94,40 @@ export type Database = {
           address: string | null
           created_at: string
           email: string | null
+          gstn: string | null
           id: string
           name: string
           notes: string | null
           phone: string
           studio_id: string
           updated_at: string
+          whatsapp_number: string | null
         }
         Insert: {
           address?: string | null
           created_at?: string
           email?: string | null
+          gstn?: string | null
           id?: string
           name: string
           notes?: string | null
           phone: string
           studio_id: string
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Update: {
           address?: string | null
           created_at?: string
           email?: string | null
+          gstn?: string | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string
           studio_id?: string
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Relationships: [
           {
@@ -181,6 +199,57 @@ export type Database = {
             columns: ["studio_id"]
             isOneToOne: false
             referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_condition_media: {
+        Row: {
+          created_at: string | null
+          id: string
+          job_id: string
+          media_type: string
+          notes: string | null
+          stage: string
+          uploaded_by: string | null
+          url: string
+          zone_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          job_id: string
+          media_type: string
+          notes?: string | null
+          stage: string
+          uploaded_by?: string | null
+          url: string
+          zone_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          job_id?: string
+          media_type?: string
+          notes?: string | null
+          stage?: string
+          uploaded_by?: string | null
+          url?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_condition_media_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_condition_media_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -310,7 +379,9 @@ export type Database = {
           expected_result: string | null
           id: string
           job_id: string
+          labor_time_minutes: number | null
           notes: string | null
+          price: number | null
           services: Json | null
           updated_at: string
           zone_name: string
@@ -324,7 +395,9 @@ export type Database = {
           expected_result?: string | null
           id?: string
           job_id: string
+          labor_time_minutes?: number | null
           notes?: string | null
+          price?: number | null
           services?: Json | null
           updated_at?: string
           zone_name: string
@@ -338,7 +411,9 @@ export type Database = {
           expected_result?: string | null
           id?: string
           job_id?: string
+          labor_time_minutes?: number | null
           notes?: string | null
+          price?: number | null
           services?: Json | null
           updated_at?: string
           zone_name?: string
@@ -501,6 +576,8 @@ export type Database = {
           owner_id: string
           phone: string | null
           updated_at: string
+          whatsapp_api_key: string | null
+          whatsapp_phone_number: string | null
         }
         Insert: {
           address?: string | null
@@ -512,6 +589,8 @@ export type Database = {
           owner_id: string
           phone?: string | null
           updated_at?: string
+          whatsapp_api_key?: string | null
+          whatsapp_phone_number?: string | null
         }
         Update: {
           address?: string | null
@@ -523,6 +602,8 @@ export type Database = {
           owner_id?: string
           phone?: string | null
           updated_at?: string
+          whatsapp_api_key?: string | null
+          whatsapp_phone_number?: string | null
         }
         Relationships: []
       }
@@ -570,6 +651,58 @@ export type Database = {
             columns: ["recorded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          job_id: string
+          notes: string | null
+          performed_by: string
+          zone_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          job_id: string
+          notes?: string | null
+          performed_by: string
+          zone_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          job_id?: string
+          notes?: string | null
+          performed_by?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "job_zones"
             referencedColumns: ["id"]
           },
         ]
