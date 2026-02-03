@@ -18,6 +18,7 @@ import {
   Ban,
   Loader2,
   Phone,
+  Truck,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,6 +46,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AnimatedCarSilhouette } from "@/components/car/AnimatedCarSilhouette";
+import { TransportRecordDialog } from "@/components/transport/TransportRecordDialog";
 
 interface JobDetails {
   id: string;
@@ -91,6 +93,15 @@ interface JobZone {
 interface StaffMember {
   id: string;
   full_name: string;
+}
+
+interface TransportRecord {
+  id: string;
+  type: string;
+  condition_notes: string | null;
+  existing_damage: string | null;
+  recorded_at: string;
+  recorded_by: string | null;
 }
 
 const ZONE_TYPES = {
@@ -148,6 +159,9 @@ export default function JobDetailPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [transportRecords, setTransportRecords] = useState<TransportRecord[]>([]);
+  const [transportDialogOpen, setTransportDialogOpen] = useState(false);
+  const [transportType, setTransportType] = useState<"pickup" | "dropoff">("pickup");
 
   const [selectedCarZones, setSelectedCarZones] = useState<string[]>([]);
   const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
@@ -163,6 +177,7 @@ export default function JobDetailPage() {
     if (jobId && studio?.id) {
       fetchJobDetails();
       fetchStaff();
+      fetchTransportRecords();
     }
   }, [jobId, studio?.id]);
 
@@ -221,6 +236,18 @@ export default function JobDetailPage() {
       .eq("status", "approved");
 
     if (data) setStaff(data);
+  };
+
+  const fetchTransportRecords = async () => {
+    if (!jobId) return;
+
+    const { data } = await supabase
+      .from("transport_records")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("recorded_at", { ascending: false });
+
+    if (data) setTransportRecords(data);
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -540,7 +567,97 @@ export default function JobDetailPage() {
               </Card>
             )}
 
-            {/* Zones List */}
+            {/* Transport / Pickup-Drop */}
+            {job.transport !== "none" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Truck className="h-5 w-5 text-primary" />
+                      Transport
+                    </CardTitle>
+                    <Badge variant="outline" className="capitalize">
+                      {job.transport === "both" ? "Pickup & Drop" : job.transport}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Transport Records */}
+                  {transportRecords.length > 0 ? (
+                    <div className="space-y-2">
+                      {transportRecords.map((record) => (
+                        <div
+                          key={record.id}
+                          className="p-3 rounded-lg border bg-muted/30"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <Badge variant="secondary" className="capitalize">
+                              {record.type}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(record.recorded_at).toLocaleString()}
+                            </span>
+                          </div>
+                          {record.condition_notes && (
+                            <p className="text-sm text-muted-foreground">
+                              {record.condition_notes}
+                            </p>
+                          )}
+                          {record.existing_damage && (
+                            <p className="text-sm text-amber-600 mt-1">
+                              ⚠ Damage: {record.existing_damage}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No transport records yet
+                    </p>
+                  )}
+
+                  {/* Transport Actions */}
+                  <div className="flex gap-2">
+                    {(job.transport === "pickup" || job.transport === "both") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setTransportType("pickup");
+                          setTransportDialogOpen(true);
+                        }}
+                        disabled={transportRecords.some((r) => r.type === "pickup")}
+                      >
+                        <Truck className="h-4 w-4 mr-1" />
+                        {transportRecords.some((r) => r.type === "pickup")
+                          ? "Pickup Done"
+                          : "Record Pickup"}
+                      </Button>
+                    )}
+                    {(job.transport === "drop" || job.transport === "both") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setTransportType("dropoff");
+                          setTransportDialogOpen(true);
+                        }}
+                        disabled={transportRecords.some((r) => r.type === "dropoff")}
+                      >
+                        <Truck className="h-4 w-4 mr-1" />
+                        {transportRecords.some((r) => r.type === "dropoff")
+                          ? "Drop Done"
+                          : "Record Drop"}
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -684,6 +801,24 @@ export default function JobDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Transport Record Dialog */}
+      {job && job.car && job.customer && profile && (
+        <TransportRecordDialog
+          open={transportDialogOpen}
+          onOpenChange={setTransportDialogOpen}
+          jobId={job.id}
+          type={transportType}
+          carInfo={{
+            make: job.car.make,
+            model: job.car.model,
+            color: job.car.color,
+          }}
+          customerName={job.customer.name}
+          profileId={profile.id}
+          onSuccess={fetchTransportRecords}
+        />
+      )}
     </DashboardLayout>
   );
 }

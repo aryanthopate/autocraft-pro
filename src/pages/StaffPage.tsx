@@ -11,6 +11,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Shield,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { StaffPermissionsDialog } from "@/components/staff/StaffPermissionsDialog";
 
 interface StaffMember {
   id: string;
@@ -35,6 +37,7 @@ interface StaffMember {
   phone: string | null;
   role: "owner" | "staff";
   status: "pending" | "approved" | "rejected";
+  permissions: Record<string, boolean>;
   created_at: string;
 }
 
@@ -44,6 +47,8 @@ export default function StaffPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [selectedStaffForPermissions, setSelectedStaffForPermissions] = useState<StaffMember | null>(null);
 
   useEffect(() => {
     if (studio?.id) {
@@ -306,6 +311,15 @@ export default function StaffPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedStaffForPermissions(member);
+                                setPermissionsDialogOpen(true);
+                              }}
+                            >
+                              <Shield className="h-4 w-4 mr-2" />
+                              Manage Permissions
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => updateStaffStatus(member.id, "rejected")}
                             >
@@ -321,6 +335,14 @@ export default function StaffPage() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Permissions Dialog */}
+        <StaffPermissionsDialog
+          open={permissionsDialogOpen}
+          onOpenChange={setPermissionsDialogOpen}
+          staff={selectedStaffForPermissions}
+          onUpdate={fetchStaff}
+        />
       </div>
     </DashboardLayout>
   );
