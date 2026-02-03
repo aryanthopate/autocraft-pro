@@ -136,11 +136,11 @@ export function VehicleDropdowns({
             </button>
           </div>
         ) : (
-          <Select value={make} onValueChange={handleMakeSelect}>
+          <Select value={make || undefined} onValueChange={handleMakeSelect}>
             <SelectTrigger className="mt-1.5">
               <SelectValue placeholder="Select make" />
             </SelectTrigger>
-            <SelectContent className="bg-popover">
+            <SelectContent className="bg-popover max-h-[300px]">
               {VEHICLE_MAKES.map((m) => (
                 <SelectItem key={m.name} value={m.name}>
                   {m.name}
@@ -181,11 +181,11 @@ export function VehicleDropdowns({
             )}
           </div>
         ) : (
-          <Select value={model} onValueChange={handleModelSelect} disabled={!make}>
+          <Select value={model || undefined} onValueChange={handleModelSelect} disabled={!make}>
             <SelectTrigger className="mt-1.5">
               <SelectValue placeholder={make ? "Select model" : "Select make first"} />
             </SelectTrigger>
-            <SelectContent className="bg-popover">
+            <SelectContent className="bg-popover max-h-[300px]">
               {availableModels.map((m) => (
                 <SelectItem key={m.name} value={m.name}>
                   {m.name}
@@ -225,11 +225,11 @@ export function VehicleDropdowns({
             )}
           </div>
         ) : (
-          <Select value={year} onValueChange={handleYearSelect} disabled={!model}>
+          <Select value={year || undefined} onValueChange={handleYearSelect} disabled={!model}>
             <SelectTrigger className="mt-1.5">
               <SelectValue placeholder={model ? "Select year" : "Select model first"} />
             </SelectTrigger>
-            <SelectContent className="bg-popover">
+            <SelectContent className="bg-popover max-h-[300px]">
               {availableYears.map((y) => (
                 <SelectItem key={y} value={y.toString()}>
                   {y}
@@ -266,11 +266,11 @@ export function VehicleDropdowns({
             </button>
           </div>
         ) : (
-          <Select value={color} onValueChange={handleColorSelect}>
+          <Select value={color || undefined} onValueChange={handleColorSelect}>
             <SelectTrigger className="mt-1.5">
               <SelectValue placeholder="Select color" />
             </SelectTrigger>
-            <SelectContent className="bg-popover">
+            <SelectContent className="bg-popover max-h-[300px]">
               {VEHICLE_COLORS.map((c) => (
                 <SelectItem key={c.name} value={c.name}>
                   <div className="flex items-center gap-2">

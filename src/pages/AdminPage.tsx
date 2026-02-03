@@ -167,9 +167,11 @@ export default function AdminPage() {
     
     setUploadingModel(true);
     try {
-      // Upload file to storage
+      // Upload file to storage - sanitize filename to remove spaces and special chars
       const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${newModel.make.toLowerCase()}-${newModel.model.toLowerCase()}-${Date.now()}.${fileExt}`;
+      const sanitizedMake = newModel.make.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const sanitizedModel = newModel.model.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const fileName = `${sanitizedMake}-${sanitizedModel}-${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("car-models")
