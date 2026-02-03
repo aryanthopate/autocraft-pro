@@ -7,15 +7,19 @@ import HomePage from "./pages/HomePage";
 import FeaturesPage from "./pages/FeaturesPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
+import StaffSignUpPage from "./pages/StaffSignUpPage";
+import StaffOnboardingPage from "./pages/StaffOnboardingPage";
 import JoinStudioPage from "./pages/JoinStudioPage";
 import SetupPage from "./pages/SetupPage";
 import PendingApprovalPage from "./pages/PendingApprovalPage";
 import DashboardPage from "./pages/DashboardPage";
+import StaffDashboardPage from "./pages/StaffDashboardPage";
 import JobsPage from "./pages/JobsPage";
 import CustomersPage from "./pages/CustomersPage";
 import VehiclesPage from "./pages/VehiclesPage";
 import StaffPage from "./pages/StaffPage";
 import SettingsPage from "./pages/SettingsPage";
+import JobDetailPage from "./pages/JobDetailPage";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
@@ -33,11 +37,13 @@ const App = () => (
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/staff-signup" element={<StaffSignUpPage />} />
           <Route path="/join" element={<JoinStudioPage />} />
           <Route path="/setup" element={<SetupPage />} />
+          <Route path="/staff-onboarding" element={<StaffOnboardingPage />} />
           <Route path="/pending-approval" element={<PendingApprovalPage />} />
           
-          {/* Protected routes */}
+          {/* Protected routes - Owner Dashboard */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <DashboardPage />
@@ -46,6 +52,11 @@ const App = () => (
           <Route path="/dashboard/jobs" element={
             <ProtectedRoute>
               <JobsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/jobs/:jobId" element={
+            <ProtectedRoute>
+              <JobDetailPage />
             </ProtectedRoute>
           } />
           <Route path="/dashboard/customers" element={
@@ -66,6 +77,13 @@ const App = () => (
           <Route path="/dashboard/settings" element={
             <ProtectedRoute requireOwner>
               <SettingsPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Staff Dashboard */}
+          <Route path="/staff" element={
+            <ProtectedRoute>
+              <StaffDashboardPage />
             </ProtectedRoute>
           } />
           
