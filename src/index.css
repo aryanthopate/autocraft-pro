@@ -1,96 +1,116 @@
+@import '@fontsource/space-grotesk/300.css';
+@import '@fontsource/space-grotesk/400.css';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/600.css';
+@import '@fontsource/space-grotesk/700.css';
+@import '@fontsource/inter/300.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* 
+  DetailFlow Pro - Premium Automotive SaaS Design System
+  Dark theme with warm amber accents for luxury automotive feel
+  All colors in HSL format
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core backgrounds - deep charcoal palette */
+    --background: 220 16% 6%;
+    --foreground: 40 6% 90%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Card and popover - slightly elevated surfaces */
+    --card: 220 14% 9%;
+    --card-foreground: 40 6% 90%;
+    --popover: 220 14% 9%;
+    --popover-foreground: 40 6% 90%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Primary - warm amber/gold (luxury automotive) */
+    --primary: 38 92% 50%;
+    --primary-foreground: 220 16% 6%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Secondary - steel gray */
+    --secondary: 220 12% 16%;
+    --secondary-foreground: 40 6% 85%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Muted - subtle dark tones */
+    --muted: 220 12% 12%;
+    --muted-foreground: 220 8% 55%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Accent - subtle warm highlight */
+    --accent: 220 12% 14%;
+    --accent-foreground: 38 92% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Destructive - muted red for professional feel */
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 40 6% 95%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Success - clean green */
+    --success: 142 60% 42%;
+    --success-foreground: 40 6% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Warning - warm amber variant */
+    --warning: 45 93% 47%;
+    --warning-foreground: 220 16% 6%;
+
+    /* Borders and inputs */
+    --border: 220 12% 18%;
+    --input: 220 12% 14%;
+    --ring: 38 92% 50%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Sidebar - premium dark */
+    --sidebar-background: 220 16% 7%;
+    --sidebar-foreground: 40 6% 85%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary-foreground: 220 16% 6%;
+    --sidebar-accent: 220 12% 12%;
+    --sidebar-accent-foreground: 40 6% 90%;
+    --sidebar-border: 220 12% 15%;
+    --sidebar-ring: 38 92% 50%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Chart colors */
+    --chart-1: 38 92% 50%;
+    --chart-2: 142 60% 42%;
+    --chart-3: 200 80% 50%;
+    --chart-4: 280 60% 55%;
+    --chart-5: 0 62% 50%;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Custom tokens for automotive theme */
+    --chrome: 220 10% 45%;
+    --chrome-highlight: 220 10% 65%;
+    --carbon: 220 14% 8%;
+    --surface-elevated: 220 14% 11%;
+    --glow-primary: 38 92% 50%;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+  /* Light mode - rarely used but available */
+  .light {
+    --background: 40 20% 98%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+    --primary: 38 92% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 10% 94%;
+    --secondary-foreground: 220 20% 15%;
+    --muted: 220 10% 94%;
+    --muted-foreground: 220 10% 40%;
+    --accent: 220 10% 94%;
+    --accent-foreground: 38 92% 40%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 88%;
+    --input: 220 10% 88%;
+    --ring: 38 92% 45%;
   }
 }
 
@@ -99,7 +119,139 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Premium glass effect for cards */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  /* Subtle glow effect for primary elements */
+  .glow-primary {
+    box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.3);
+  }
+
+  /* Chrome/metallic text effect */
+  .text-chrome {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--chrome-highlight)) 0%,
+      hsl(var(--chrome)) 50%,
+      hsl(var(--chrome-highlight)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Premium gradient backgrounds */
+  .gradient-dark {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--background)) 0%,
+      hsl(var(--carbon)) 100%
+    );
+  }
+
+  .gradient-radial-dark {
+    background: radial-gradient(
+      ellipse at 50% 0%,
+      hsl(var(--surface-elevated)) 0%,
+      hsl(var(--background)) 70%
+    );
+  }
+
+  /* Automotive-style section divider */
+  .section-divider {
+    @apply h-px bg-gradient-to-r from-transparent via-border to-transparent;
+  }
+
+  /* Premium input focus states */
+  .input-premium {
+    @apply transition-all duration-200;
+  }
+
+  .input-premium:focus {
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+  }
+
+  /* Status badges */
+  .badge-pending {
+    @apply bg-warning/15 text-warning border-warning/30;
+  }
+
+  .badge-active {
+    @apply bg-success/15 text-success border-success/30;
+  }
+
+  .badge-completed {
+    @apply bg-primary/15 text-primary border-primary/30;
+  }
+}
+
+@layer utilities {
+  /* Text balance for headings */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Gradient text */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(45, 93%, 60%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Subtle hover lift */
+  .hover-lift {
+    @apply transition-transform duration-200;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
   }
 }
