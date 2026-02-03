@@ -20,6 +20,7 @@ import VehiclesPage from "./pages/VehiclesPage";
 import StaffPage from "./pages/StaffPage";
 import SettingsPage from "./pages/SettingsPage";
 import JobDetailPage from "./pages/JobDetailPage";
+import InvoicesPage from "./pages/InvoicesPage";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
@@ -77,6 +78,11 @@ const App = () => (
           <Route path="/dashboard/settings" element={
             <ProtectedRoute requireOwner>
               <SettingsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/invoices" element={
+            <ProtectedRoute requireOwner>
+              <InvoicesPage />
             </ProtectedRoute>
           } />
           

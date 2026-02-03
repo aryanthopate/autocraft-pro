@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, Search, Car, Calendar, MoreHorizontal, User } from "lucide-react";
+import { Plus, Search, Car, Calendar, MoreHorizontal, User, History, ClipboardList } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { VehicleServiceHistory } from "@/components/vehicles/VehicleServiceHistory";
 
 interface Vehicle {
   id: string;
@@ -52,6 +54,7 @@ interface Customer {
 }
 
 export default function VehiclesPage() {
+  const navigate = useNavigate();
   const { studio } = useAuth();
   const { toast } = useToast();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -59,6 +62,8 @@ export default function VehiclesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [formData, setFormData] = useState({
     customer_id: "",
     make: "",
@@ -361,8 +366,21 @@ export default function VehiclesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View History</DropdownMenuItem>
-                          <DropdownMenuItem>Create Job</DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedVehicle(vehicle);
+                              setHistoryOpen(true);
+                            }}
+                          >
+                            <History className="h-4 w-4 mr-2" />
+                            View History
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/dashboard/jobs?car=${vehicle.id}`)}
+                          >
+                            <ClipboardList className="h-4 w-4 mr-2" />
+                            Create Job
+                          </DropdownMenuItem>
                           <DropdownMenuItem>Edit Vehicle</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -398,6 +416,23 @@ export default function VehiclesPage() {
               </motion.div>
             ))}
           </div>
+        )}
+
+        {/* Service History Sheet */}
+        {selectedVehicle && (
+          <VehicleServiceHistory
+            open={historyOpen}
+            onOpenChange={setHistoryOpen}
+            vehicleId={selectedVehicle.id}
+            vehicleInfo={{
+              make: selectedVehicle.make,
+              model: selectedVehicle.model,
+              year: selectedVehicle.year,
+              color: selectedVehicle.color,
+              license_plate: selectedVehicle.license_plate,
+            }}
+            customerName={selectedVehicle.customer?.name || "Unknown"}
+          />
         )}
       </div>
     </DashboardLayout>
