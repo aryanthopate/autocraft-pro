@@ -23,6 +23,8 @@ import SettingsPage from "./pages/SettingsPage";
 import JobDetailPage from "./pages/JobDetailPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import NotFound from "./pages/NotFound";
+import AdminPage from "./pages/AdminPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -98,6 +100,10 @@ const App = () => (
               <StaffDashboardPage />
             </ProtectedRoute>
           } />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
