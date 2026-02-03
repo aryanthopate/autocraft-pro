@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows, useGLTF, Html, Center } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
-import { RotateCcw, ZoomIn, ZoomOut, Maximize2, Loader2 } from "lucide-react";
+import { Maximize2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -262,7 +262,6 @@ export function Car3DViewer({
   onHotspotClick,
   readOnly = false 
 }: Car3DViewerProps) {
-  const [isAutoRotate, setIsAutoRotate] = useState(true);
   const controlsRef = useRef<any>(null);
 
   const handleReset = () => {
@@ -336,31 +335,24 @@ export function Car3DViewer({
               <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.8} />
             </mesh>
             
-            {/* Camera Controls */}
+            {/* Camera Controls - Manual rotation only */}
             <CameraController />
             <OrbitControls 
               ref={controlsRef}
-              autoRotate={isAutoRotate}
-              autoRotateSpeed={0.5}
+              autoRotate={false}
               enablePan={false}
               minDistance={3}
               maxDistance={8}
               minPolarAngle={Math.PI * 0.2}
               maxPolarAngle={Math.PI * 0.5}
+              enableDamping={true}
+              dampingFactor={0.05}
             />
           </Suspense>
         </Canvas>
         
         {/* Control Buttons */}
         <div className="absolute bottom-4 left-4 flex gap-2 z-20">
-          <Button
-            size="sm"
-            variant={isAutoRotate ? "default" : "outline"}
-            onClick={() => setIsAutoRotate(!isAutoRotate)}
-            className="backdrop-blur bg-card/80"
-          >
-            <RotateCcw className={cn("h-4 w-4", isAutoRotate && "animate-spin")} />
-          </Button>
           <Button
             size="sm"
             variant="outline"

@@ -41,6 +41,56 @@ export type Database = {
         }
         Relationships: []
       }
+      car_models_3d: {
+        Row: {
+          created_at: string
+          default_color: string | null
+          id: string
+          is_active: boolean | null
+          make: string
+          model: string
+          model_url: string
+          thumbnail_url: string | null
+          updated_at: string
+          uploaded_by: string | null
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          default_color?: string | null
+          id?: string
+          is_active?: boolean | null
+          make: string
+          model: string
+          model_url: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          default_color?: string | null
+          id?: string
+          is_active?: boolean | null
+          make?: string
+          model?: string
+          model_url?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_models_3d_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cars: {
         Row: {
           color: string | null

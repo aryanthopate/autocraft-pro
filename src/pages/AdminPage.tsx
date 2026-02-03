@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Building2, 
@@ -16,7 +16,11 @@ import {
   Phone,
   Mail,
   MapPin,
-  FileText
+  FileText,
+  Upload,
+  Box,
+  Trash2,
+  Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 
 interface Studio {
@@ -88,6 +93,18 @@ interface Car {
   registration_number: string | null;
 }
 
+interface CarModel3D {
+  id: string;
+  make: string;
+  model: string;
+  year: number | null;
+  model_url: string;
+  thumbnail_url: string | null;
+  default_color: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export default function AdminPage() {
   const { toast } = useToast();
   const [studios, setStudios] = useState<Studio[]>([]);
@@ -101,10 +118,135 @@ export default function AdminPage() {
     cars: Car[];
   } | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  
+  // 3D Model Management State
+  const [carModels3D, setCarModels3D] = useState<CarModel3D[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [uploadingModel, setUploadingModel] = useState(false);
+  const [showModelUpload, setShowModelUpload] = useState(false);
+  const [newModel, setNewModel] = useState({
+    make: "",
+    model: "",
+    year: "",
+    default_color: "#FF6600"
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchStudios();
+    fetchCarModels3D();
   }, []);
+  
+  const fetchCarModels3D = async () => {
+    setLoadingModels(true);
+    try {
+      const { data, error } = await supabase
+        .from("car_models_3d")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      setCarModels3D(data || []);
+    } catch (error) {
+      console.error("Error fetching 3D models:", error);
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+  
+  const handleUpload3DModel = async () => {
+    if (!selectedFile || !newModel.make || !newModel.model) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill in make, model, and select a file.",
+      });
+      return;
+    }
+    
+    setUploadingModel(true);
+    try {
+      // Upload file to storage
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${newModel.make.toLowerCase()}-${newModel.model.toLowerCase()}-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("car-models")
+        .upload(fileName, selectedFile);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("car-models")
+        .getPublicUrl(fileName);
+      
+      // Insert record
+      const { error: insertError } = await supabase
+        .from("car_models_3d")
+        .insert({
+          make: newModel.make,
+          model: newModel.model,
+          year: newModel.year ? parseInt(newModel.year) : null,
+          model_url: publicUrl,
+          default_color: newModel.default_color,
+        });
+      
+      if (insertError) throw insertError;
+      
+      toast({
+        title: "Success!",
+        description: "3D model uploaded successfully.",
+      });
+      
+      setShowModelUpload(false);
+      setNewModel({ make: "", model: "", year: "", default_color: "#FF6600" });
+      setSelectedFile(null);
+      fetchCarModels3D();
+    } catch (error: any) {
+      console.error("Error uploading 3D model:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: error.message || "Could not upload 3D model.",
+      });
+    } finally {
+      setUploadingModel(false);
+    }
+  };
+  
+  const handleDelete3DModel = async (model: CarModel3D) => {
+    try {
+      // Delete from storage
+      const fileName = model.model_url.split('/').pop();
+      if (fileName) {
+        await supabase.storage.from("car-models").remove([fileName]);
+      }
+      
+      // Delete record
+      const { error } = await supabase
+        .from("car_models_3d")
+        .delete()
+        .eq("id", model.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Deleted",
+        description: "3D model removed successfully.",
+      });
+      
+      fetchCarModels3D();
+    } catch (error: any) {
+      console.error("Error deleting 3D model:", error);
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: error.message || "Could not delete 3D model.",
+      });
+    }
+  };
 
   const fetchStudios = async () => {
     try {
@@ -241,6 +383,81 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </div>
+        
+        {/* 3D Car Models Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Box className="h-5 w-5" />
+                  3D Car Models
+                </CardTitle>
+                <CardDescription>
+                  Upload and manage 3D car models for the configurator
+                </CardDescription>
+              </div>
+              <Button onClick={() => setShowModelUpload(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Model
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingModels ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+              </div>
+            ) : carModels3D.length === 0 ? (
+              <div className="text-center py-12 border border-dashed rounded-lg">
+                <Box className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+                <p className="font-medium">No 3D Models</p>
+                <p className="text-sm text-muted-foreground">Upload your first 3D car model</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {carModels3D.map((model) => (
+                  <Card key={model.id} className="relative group">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="h-10 w-10 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: model.default_color || "#FF6600" }}
+                          >
+                            <Car className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-semibold">{model.make} {model.model}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {model.year || "All years"}
+                            </p>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                          onClick={() => handleDelete3DModel(model)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="mt-4 pt-4 border-t">
+                        <p className="text-xs text-muted-foreground truncate">
+                          {model.model_url}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Added: {format(new Date(model.created_at), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Vendors Section */}
         <Card>
@@ -557,6 +774,125 @@ export default function AdminPage() {
               </TabsContent>
             </Tabs>
           )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* 3D Model Upload Dialog */}
+      <Dialog open={showModelUpload} onOpenChange={setShowModelUpload}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Upload 3D Car Model
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Make *</Label>
+                <Input
+                  placeholder="e.g., BMW"
+                  value={newModel.make}
+                  onChange={(e) => setNewModel({ ...newModel, make: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Model *</Label>
+                <Input
+                  placeholder="e.g., M3 GTS"
+                  value={newModel.model}
+                  onChange={(e) => setNewModel({ ...newModel, model: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Year (optional)</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g., 2011"
+                  value={newModel.year}
+                  onChange={(e) => setNewModel({ ...newModel, year: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Default Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={newModel.default_color}
+                    onChange={(e) => setNewModel({ ...newModel, default_color: e.target.value })}
+                    className="w-12 h-10 p-1"
+                  />
+                  <Input
+                    value={newModel.default_color}
+                    onChange={(e) => setNewModel({ ...newModel, default_color: e.target.value })}
+                    placeholder="#FF6600"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>3D Model File (.glb, .gltf, .zip) *</Label>
+              <div
+                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-racing/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {selectedFile ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Box className="h-5 w-5 text-racing" />
+                    <span className="font-medium">{selectedFile.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedFile(null);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Click to select a 3D model file
+                    </p>
+                  </>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".glb,.gltf,.zip"
+                className="hidden"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setShowModelUpload(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpload3DModel} disabled={uploadingModel}>
+                {uploadingModel ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Model
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
