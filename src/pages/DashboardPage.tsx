@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   ClipboardList, 
@@ -7,99 +8,244 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Zap,
+  Target,
+  Gauge,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnimatedCarSilhouette } from "@/components/car/AnimatedCarSilhouette";
+import { SpeedometerWidget } from "@/components/car/SpeedometerWidget";
+import { RacingStatsCard } from "@/components/car/RacingStatsCard";
 
 export default function DashboardPage() {
   const { profile, studio, isOwner } = useAuth();
+  const [selectedCarZones, setSelectedCarZones] = useState<string[]>([]);
+
+  const handleZoneClick = (zoneId: string) => {
+    setSelectedCarZones((prev) =>
+      prev.includes(zoneId)
+        ? prev.filter((id) => id !== zoneId)
+        : [...prev, zoneId]
+    );
+  };
 
   const stats = [
     {
       name: "Active Jobs",
       value: "0",
       icon: ClipboardList,
-      change: "Start creating jobs",
-      changeType: "neutral" as const,
+      subtitle: "Start creating jobs",
+      accentColor: "racing" as const,
     },
     {
       name: "Customers",
       value: "0",
       icon: Users,
-      change: "Add your first customer",
-      changeType: "neutral" as const,
+      subtitle: "Add your first customer",
+      accentColor: "primary" as const,
     },
     {
       name: "Vehicles",
       value: "0",
       icon: Car,
-      change: "Register vehicles",
-      changeType: "neutral" as const,
+      subtitle: "Register vehicles",
+      accentColor: "success" as const,
     },
     {
-      name: "Completed This Month",
+      name: "Completed",
       value: "0",
       icon: CheckCircle2,
-      change: "Complete jobs to see stats",
-      changeType: "neutral" as const,
+      subtitle: "This month",
+      accentColor: "warning" as const,
     },
   ];
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Welcome header */}
+      <div className="space-y-8">
+        {/* Welcome header with racing accent */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="relative"
         >
-          <h1 className="font-display text-3xl font-bold">
-            Welcome back, {profile?.full_name?.split(" ")[0] || "there"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Here's what's happening at {studio?.name || "your studio"} today.
-          </p>
+          <div className="flex items-center gap-4">
+            <motion.div
+              className="h-12 w-1.5 bg-gradient-to-b from-racing to-primary rounded-full"
+              initial={{ scaleY: 0 }}
+              animate={{ scaleY: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            />
+            <div>
+              <h1 className="font-display text-3xl font-bold">
+                Welcome back,{" "}
+                <span className="text-gradient-primary">
+                  {profile?.full_name?.split(" ")[0] || "there"}
+                </span>
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Here's what's happening at {studio?.name || "your studio"} today.
+              </p>
+            </div>
+          </div>
         </motion.div>
 
-        {/* Stats grid */}
+        {/* Stats grid with racing cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => (
-            <motion.div
+            <RacingStatsCard
               key={stat.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-            >
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.name}
-                  </CardTitle>
-                  <stat.icon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {stat.change}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
+              title={stat.name}
+              value={stat.value}
+              subtitle={stat.subtitle}
+              icon={stat.icon}
+              accentColor={stat.accentColor}
+              delay={index * 0.1}
+            />
           ))}
         </div>
 
-        {/* Quick actions / Recent activity */}
+        {/* Main content grid */}
+        <div className="grid gap-6 lg:grid-cols-5">
+          {/* Car Visualization - spans 3 columns */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="lg:col-span-3"
+          >
+            <Card className="border-border/50 overflow-hidden">
+              <CardHeader className="border-b border-border/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-racing/10 flex items-center justify-center">
+                      <Target className="h-4 w-4 text-racing" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Car Zone Selector</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Click zones to configure services
+                      </p>
+                    </div>
+                  </div>
+                  {selectedCarZones.length > 0 && (
+                    <motion.button
+                      className="text-xs text-racing hover:text-racing-glow transition-colors"
+                      onClick={() => setSelectedCarZones([])}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      Clear selection
+                    </motion.button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <AnimatedCarSilhouette
+                  selectedZones={selectedCarZones}
+                  onZoneClick={handleZoneClick}
+                  interactive={true}
+                />
+                
+                {/* Zone legend */}
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="h-3 w-3 rounded border border-muted-foreground/30" />
+                    <span>Available</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="h-3 w-3 rounded border border-racing bg-racing/20" />
+                    <span>Selected</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Performance widgets - spans 2 columns */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="lg:col-span-2 space-y-4"
+          >
+            {/* Speedometer cards */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Gauge className="h-4 w-4 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg">Performance</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-around py-4">
+                  <SpeedometerWidget
+                    value={0}
+                    max={100}
+                    label="Jobs"
+                    sublabel="This Week"
+                  />
+                  <SpeedometerWidget
+                    value={0}
+                    max={100}
+                    label="Done"
+                    sublabel="Completion Rate"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick actions */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-racing/10 flex items-center justify-center">
+                    <Zap className="h-4 w-4 text-racing" />
+                  </div>
+                  <CardTitle className="text-lg">Quick Actions</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {[
+                  { label: "New Job", icon: ClipboardList, href: "/dashboard/jobs" },
+                  { label: "Add Customer", icon: Users, href: "/dashboard/customers" },
+                  { label: "Register Vehicle", icon: Car, href: "/dashboard/vehicles" },
+                ].map((action, i) => (
+                  <motion.a
+                    key={action.label}
+                    href={action.href}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + i * 0.1 }}
+                    whileHover={{ x: 4 }}
+                  >
+                    <div className="h-8 w-8 rounded-lg bg-card flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <action.icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                    <span className="text-sm font-medium">{action.label}</span>
+                  </motion.a>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Bottom section */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Pending items for owner */}
           {isOwner && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              transition={{ duration: 0.5, delay: 0.7 }}
             >
-              <Card>
+              <Card className="border-warning/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-warning" />
@@ -123,9 +269,9 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
           >
-            <Card>
+            <Card className="border-primary/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-primary" />
@@ -149,59 +295,48 @@ export default function DashboardPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
+              transition={{ duration: 0.5, delay: 0.9 }}
               className="lg:col-span-2"
             >
-              <Card className="border-primary/20 bg-primary/5">
+              <Card className="border-racing/20 bg-gradient-to-br from-racing/5 to-primary/5 overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-racing/10 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl" />
                 <CardHeader>
-                  <CardTitle>Getting Started</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <motion.div
+                      initial={{ rotate: 0 }}
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Zap className="h-5 w-5 text-racing" />
+                    </motion.div>
+                    Getting Started
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative">
                   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
-                        1
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Add customers</p>
-                        <p className="text-xs text-muted-foreground">
-                          Register your first customers
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
-                        2
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Register vehicles</p>
-                        <p className="text-xs text-muted-foreground">
-                          Add vehicles to customers
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
-                        3
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Create a job</p>
-                        <p className="text-xs text-muted-foreground">
-                          Start your first detailing job
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
-                        4
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Invite staff</p>
-                        <p className="text-xs text-muted-foreground">
-                          Share your studio key
-                        </p>
-                      </div>
-                    </div>
+                    {[
+                      { step: 1, title: "Add customers", desc: "Register your first customers" },
+                      { step: 2, title: "Register vehicles", desc: "Add vehicles to customers" },
+                      { step: 3, title: "Create a job", desc: "Start your first detailing job" },
+                      { step: 4, title: "Invite staff", desc: "Share your studio key" },
+                    ].map((item, i) => (
+                      <motion.div
+                        key={item.step}
+                        className="flex items-start gap-3"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 1 + i * 0.1 }}
+                      >
+                        <div className="h-8 w-8 rounded-full bg-racing/20 flex items-center justify-center text-racing font-bold text-sm border border-racing/30">
+                          {item.step}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{item.title}</p>
+                          <p className="text-xs text-muted-foreground">{item.desc}</p>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

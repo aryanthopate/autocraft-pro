@@ -56,6 +56,11 @@ export default {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        racing: {
+          DEFAULT: "hsl(var(--racing-red))",
+          glow: "hsl(var(--racing-red-glow))",
+          dark: "hsl(var(--racing-red-dark))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",

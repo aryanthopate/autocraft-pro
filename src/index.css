@@ -42,9 +42,9 @@
     --muted: 220 12% 12%;
     --muted-foreground: 220 8% 55%;
 
-    /* Accent - subtle warm highlight */
-    --accent: 220 12% 14%;
-    --accent-foreground: 38 92% 55%;
+    /* Accent - racing red (new!) */
+    --accent: 0 72% 50%;
+    --accent-foreground: 0 0% 100%;
 
     /* Destructive - muted red for professional feel */
     --destructive: 0 62% 45%;
@@ -57,6 +57,11 @@
     /* Warning - warm amber variant */
     --warning: 45 93% 47%;
     --warning-foreground: 220 16% 6%;
+
+    /* Racing red accent */
+    --racing-red: 0 72% 50%;
+    --racing-red-glow: 0 72% 60%;
+    --racing-red-dark: 0 72% 35%;
 
     /* Borders and inputs */
     --border: 220 12% 18%;
@@ -80,7 +85,7 @@
     --chart-2: 142 60% 42%;
     --chart-3: 200 80% 50%;
     --chart-4: 280 60% 55%;
-    --chart-5: 0 62% 50%;
+    --chart-5: 0 72% 50%;
 
     /* Custom tokens for automotive theme */
     --chrome: 220 10% 45%;
@@ -88,6 +93,7 @@
     --carbon: 220 14% 8%;
     --surface-elevated: 220 14% 11%;
     --glow-primary: 38 92% 50%;
+    --glow-red: 0 72% 50%;
   }
 
   /* Light mode - rarely used but available */
@@ -200,6 +206,52 @@
 
   .badge-completed {
     @apply bg-primary/15 text-primary border-primary/30;
+  }
+
+  /* Racing red glow effect */
+  .glow-red {
+    box-shadow: 0 0 20px -5px hsl(var(--racing-red) / 0.4);
+  }
+
+  /* Car zone highlight */
+  .zone-highlight {
+    @apply transition-all duration-300;
+  }
+
+  .zone-highlight:hover {
+    filter: drop-shadow(0 0 8px hsl(var(--racing-red) / 0.6));
+  }
+
+  .zone-selected {
+    filter: drop-shadow(0 0 12px hsl(var(--racing-red) / 0.8));
+  }
+
+  /* Speedometer animation */
+  .speedometer-needle {
+    transform-origin: bottom center;
+    animation: needle-sweep 2s ease-out forwards;
+  }
+
+  @keyframes needle-sweep {
+    0% { transform: rotate(-90deg); }
+    100% { transform: rotate(var(--needle-angle, 45deg)); }
+  }
+
+  /* Racing stripes */
+  .racing-stripes {
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      hsl(var(--racing-red) / 0.1) 2px,
+      hsl(var(--racing-red) / 0.1) 4px
+    );
+  }
+
+  /* Car silhouette glow */
+  .car-glow {
+    filter: drop-shadow(0 4px 20px hsl(var(--racing-red) / 0.3))
+            drop-shadow(0 0 40px hsl(var(--primary) / 0.2));
   }
 }
 
