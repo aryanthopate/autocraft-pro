@@ -17,6 +17,10 @@ import {
   Calendar,
   User,
   Camera,
+  Check,
+  X,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,23 +52,112 @@ interface JobZone {
   completed: boolean;
 }
 
+interface DashboardStats {
+  activeJobs: number;
+  customers: number;
+  vehicles: number;
+  completedThisMonth: number;
+  pendingStaff: number;
+  jobsThisWeek: number;
+  completionRate: number;
+}
+
+interface PendingStaffMember {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  created_at: string;
+}
+
+interface RecentJob {
+  id: string;
+  status: string;
+  created_at: string;
+  customer?: { name: string };
+  car?: { make: string; model: string };
+}
+
 export default function DashboardPage() {
   const { profile, studio, isOwner } = useAuth();
   const { toast } = useToast();
   const [selectedCarZones, setSelectedCarZones] = useState<string[]>([]);
   
+  // Owner stats
+  const [stats, setStats] = useState<DashboardStats>({
+    activeJobs: 0,
+    customers: 0,
+    vehicles: 0,
+    completedThisMonth: 0,
+    pendingStaff: 0,
+    jobsThisWeek: 0,
+    completionRate: 0,
+  });
+  const [pendingStaffList, setPendingStaffList] = useState<PendingStaffMember[]>([]);
+  const [recentJobs, setRecentJobs] = useState<RecentJob[]>([]);
+  
   // Staff-specific state
   const [staffJobs, setStaffJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [zones, setZones] = useState<JobZone[]>([]);
-  const [loading, setLoading] = useState(!isOwner);
+  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    if (!isOwner && studio?.id && profile?.id) {
-      fetchStaffJobs();
+    if (studio?.id && profile?.id) {
+      if (isOwner) {
+        fetchOwnerStats();
+      } else {
+        fetchStaffJobs();
+      }
     }
   }, [isOwner, studio?.id, profile?.id]);
+
+  const fetchOwnerStats = async () => {
+    if (!studio?.id) return;
+    
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).toISOString();
+
+      const [jobsRes, customersRes, carsRes, pendingStaffRes, recentJobsRes] = await Promise.all([
+        supabase.from("jobs").select("id, status, created_at", { count: "exact" }).eq("studio_id", studio.id),
+        supabase.from("customers").select("id", { count: "exact" }).eq("studio_id", studio.id),
+        supabase.from("cars").select("id", { count: "exact" }).eq("studio_id", studio.id),
+        supabase.from("profiles").select("id, full_name, email, phone, created_at").eq("studio_id", studio.id).eq("status", "pending"),
+        supabase.from("jobs").select("id, status, created_at, customers(name), cars(make, model)").eq("studio_id", studio.id).order("created_at", { ascending: false }).limit(5),
+      ]);
+
+      const allJobs = jobsRes.data || [];
+      const activeJobs = allJobs.filter(j => ["pending", "scheduled", "in_progress", "awaiting_review"].includes(j.status)).length;
+      const completedThisMonth = allJobs.filter(j => j.status === "completed" && j.created_at >= startOfMonth).length;
+      const jobsThisWeek = allJobs.filter(j => j.created_at >= startOfWeek).length;
+      const totalCompleted = allJobs.filter(j => j.status === "completed").length;
+      const completionRate = allJobs.length > 0 ? Math.round((totalCompleted / allJobs.length) * 100) : 0;
+
+      setStats({
+        activeJobs,
+        customers: customersRes.count || 0,
+        vehicles: carsRes.count || 0,
+        completedThisMonth,
+        pendingStaff: (pendingStaffRes.data || []).length,
+        jobsThisWeek,
+        completionRate,
+      });
+
+      setPendingStaffList((pendingStaffRes.data || []) as PendingStaffMember[]);
+      setRecentJobs((recentJobsRes.data || []).map((j: any) => ({
+        ...j,
+        customer: j.customers,
+        car: j.cars,
+      })));
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchStaffJobs = async () => {
     if (!studio?.id || !profile?.id) return;
@@ -199,31 +292,31 @@ export default function DashboardPage() {
     );
   };
 
-  const stats = [
+  const statsCards = [
     {
       name: "Active Jobs",
-      value: "0",
+      value: stats.activeJobs.toString(),
       icon: ClipboardList,
-      subtitle: "Start creating jobs",
+      subtitle: stats.activeJobs > 0 ? "In progress" : "Start creating jobs",
       accentColor: "racing" as const,
     },
     {
       name: "Customers",
-      value: "0",
+      value: stats.customers.toString(),
       icon: Users,
-      subtitle: "Add your first customer",
+      subtitle: stats.customers > 0 ? "Total registered" : "Add your first customer",
       accentColor: "primary" as const,
     },
     {
       name: "Vehicles",
-      value: "0",
+      value: stats.vehicles.toString(),
       icon: Car,
-      subtitle: "Register vehicles",
+      subtitle: stats.vehicles > 0 ? "Total registered" : "Register vehicles",
       accentColor: "success" as const,
     },
     {
       name: "Completed",
-      value: "0",
+      value: stats.completedThisMonth.toString(),
       icon: CheckCircle2,
       subtitle: "This month",
       accentColor: "warning" as const,
@@ -452,6 +545,16 @@ export default function DashboardPage() {
   }
 
   // Owner Dashboard View
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -485,7 +588,7 @@ export default function DashboardPage() {
 
         {/* Stats grid with racing cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
+          {statsCards.map((stat, index) => (
             <RacingStatsCard
               key={stat.name}
               title={stat.name}
@@ -575,13 +678,13 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="flex justify-around py-4">
                   <SpeedometerWidget
-                    value={0}
-                    max={100}
+                    value={stats.jobsThisWeek}
+                    max={Math.max(10, stats.jobsThisWeek + 5)}
                     label="Jobs"
                     sublabel="This Week"
                   />
                   <SpeedometerWidget
-                    value={0}
+                    value={stats.completionRate}
                     max={100}
                     label="Done"
                     sublabel="Completion Rate"
@@ -639,17 +742,66 @@ export default function DashboardPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-warning" />
-                    Pending Actions
+                    Pending Actions {pendingStaffList.length > 0 && `(${pendingStaffList.length})`}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>No pending items</p>
-                    <p className="text-sm mt-1">
-                      Staff requests and job approvals will appear here
-                    </p>
-                  </div>
+                  {pendingStaffList.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>No pending items</p>
+                      <p className="text-sm mt-1">
+                        Staff requests and job approvals will appear here
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pendingStaffList.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-3 rounded-lg border border-warning/20 bg-warning/5"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-warning/10 flex items-center justify-center">
+                              <span className="text-sm font-medium text-warning">
+                                {member.full_name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{member.full_name}</p>
+                              <p className="text-xs text-muted-foreground">{member.email}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                              onClick={async () => {
+                                await supabase.from("profiles").update({ status: "rejected" }).eq("id", member.id);
+                                fetchOwnerStats();
+                                toast({ title: "Staff rejected" });
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-8"
+                              onClick={async () => {
+                                await supabase.from("profiles").update({ status: "approved" }).eq("id", member.id);
+                                fetchOwnerStats();
+                                toast({ title: "Staff approved!" });
+                              }}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -669,13 +821,40 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No jobs yet</p>
-                  <p className="text-sm mt-1">
-                    Create your first job to get started
-                  </p>
-                </div>
+                {recentJobs.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No jobs yet</p>
+                    <p className="text-sm mt-1">
+                      Create your first job to get started
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {recentJobs.map((job) => (
+                      <a
+                        key={job.id}
+                        href={`/dashboard/jobs/${job.id}`}
+                        className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Car className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">
+                              {job.car?.make} {job.car?.model}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{job.customer?.name}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {job.status.replace("_", " ")}
+                        </Badge>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
