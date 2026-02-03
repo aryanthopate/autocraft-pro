@@ -24,6 +24,8 @@ import JobDetailPage from "./pages/JobDetailPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import NotFound from "./pages/NotFound";
 import AdminPage from "./pages/AdminPage";
+import AdminSignUpPage from "./pages/AdminSignUpPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminProtectedRoute } from "./components/auth/AdminProtectedRoute";
 
@@ -46,6 +48,8 @@ const App = () => (
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/staff-onboarding" element={<StaffOnboardingPage />} />
           <Route path="/pending-approval" element={<PendingApprovalPage />} />
+          <Route path="/admin-signup" element={<AdminSignUpPage />} />
+          <Route path="/admin-login" element={<AdminLoginPage />} />
           
           {/* Protected routes - Owner Dashboard */}
           <Route path="/dashboard" element={
