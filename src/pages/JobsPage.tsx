@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Plus, 
@@ -79,6 +80,7 @@ interface Vehicle {
 }
 
 export default function JobsPage() {
+  const navigate = useNavigate();
   const { studio, profile } = useAuth();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -452,7 +454,11 @@ export default function JobsPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(`/dashboard/jobs/${job.id}`)}
+                        >
                           View Details
                         </Button>
                         <DropdownMenu>

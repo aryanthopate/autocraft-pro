@@ -27,8 +27,13 @@ export function ProtectedRoute({
     }
 
     if (!profile) {
-      // User exists but no profile - they need to complete setup
-      navigate("/setup");
+      // User exists but no profile - check if staff needs onboarding
+      const metadata = user.user_metadata || {};
+      if (metadata.role === "staff" && !metadata.studio_key) {
+        navigate("/staff-onboarding");
+      } else {
+        navigate("/setup");
+      }
       return;
     }
 

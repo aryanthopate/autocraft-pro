@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Sparkles, Loader2, Users } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,18 +9,33 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-const loginSchema = z.object({
+const signupSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Please enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
+  phone: z
+    .string()
+    .trim()
+    .min(7, "Please enter a valid phone number")
+    .max(20, "Phone number is too long"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password must be less than 72 characters"),
 });
 
-export default function LoginPage() {
+export default function StaffSignUpPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
+    phone: "",
     password: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -29,8 +44,7 @@ export default function LoginPage() {
     e.preventDefault();
     setErrors({});
 
-    // Validate form
-    const result = loginSchema.safeParse(formData);
+    const result = signupSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach((err) => {
@@ -45,39 +59,47 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const redirectUrl = `${window.location.origin}/`;
+
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: formData.name,
+            phone: formData.phone,
+            role: "staff",
+          },
+        },
       });
 
       if (error) {
-        if (error.message.includes("Invalid login credentials")) {
+        if (error.message.includes("already registered")) {
           toast({
             variant: "destructive",
-            title: "Login failed",
-            description: "Invalid email or password. Please try again.",
-          });
-        } else if (error.message.includes("Email not confirmed")) {
-          toast({
-            variant: "destructive",
-            title: "Email not verified",
-            description: "Please check your email and verify your account.",
+            title: "Account exists",
+            description:
+              "An account with this email already exists. Please sign in instead.",
           });
         } else {
           toast({
             variant: "destructive",
-            title: "Login failed",
+            title: "Sign up failed",
             description: error.message,
           });
         }
         return;
       }
 
-      toast({
-        title: "Welcome back!",
-        description: "You have been logged in successfully.",
-      });
-      navigate("/dashboard");
+      if (data.user) {
+        toast({
+          title: "Account created!",
+          description:
+            "Please check your email to verify your account. After verification, you can join a studio.",
+        });
+        navigate("/login");
+      }
     } catch (error) {
       toast({
         variant: "destructive",
@@ -99,7 +121,6 @@ export default function LoginPage() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mb-8">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
               <Sparkles className="h-5 w-5 text-primary-foreground" />
@@ -108,35 +129,72 @@ export default function LoginPage() {
           </Link>
 
           <div className="mb-8">
-            <h1 className="font-display text-3xl font-bold mb-2">Welcome back</h1>
+            <h1 className="font-display text-3xl font-bold mb-2">
+              Staff Sign Up
+            </h1>
             <p className="text-muted-foreground">
-              Sign in to your account to continue
+              Create your account first, then join your studio
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="name">Your Name</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={formData.email}
+                id="name"
+                placeholder="John Smith"
+                value={formData.name}
                 onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
+                  setFormData({ ...formData, name: e.target.value })
                 }
-                className={errors.email ? "border-destructive" : ""}
+                className={errors.name ? "border-destructive" : ""}
                 disabled={isLoading}
               />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  className={errors.email ? "border-destructive" : ""}
+                  disabled={isLoading}
+                />
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email}</p>
+                )}
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+1 (555) 000-0000"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  className={errors.phone ? "border-destructive" : ""}
+                  disabled={isLoading}
+                />
+                {errors.phone && (
+                  <p className="text-sm text-destructive">{errors.phone}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -146,7 +204,9 @@ export default function LoginPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
-                  className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                  className={
+                    errors.password ? "border-destructive pr-10" : "pr-10"
+                  }
                   disabled={isLoading}
                 />
                 <button
@@ -164,6 +224,9 @@ export default function LoginPage() {
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password}</p>
               )}
+              <p className="text-xs text-muted-foreground">
+                Must be at least 8 characters
+              </p>
             </div>
 
             <Button
@@ -176,30 +239,35 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  Creating account...
                 </>
               ) : (
-                "Sign in"
+                "Create Account"
               )}
             </Button>
           </form>
 
+          <p className="mt-6 text-sm text-muted-foreground text-center">
+            After creating your account, you'll be able to join a studio using
+            the join key from your studio owner.
+          </p>
+
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            Already have an account?{" "}
             <Link
-              to="/signup"
+              to="/login"
               className="font-medium text-primary hover:underline"
             >
-              Create a studio
+              Sign in
             </Link>
           </div>
 
           <div className="mt-4 text-center">
             <Link
-              to="/staff-signup"
+              to="/signup"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Staff member? Create account →
+              Studio owner? Create a studio →
             </Link>
           </div>
         </motion.div>
@@ -209,15 +277,24 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:flex-1 bg-card border-l border-border items-center justify-center p-12">
         <div className="max-w-md text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary mx-auto mb-8">
-            <Sparkles className="h-10 w-10" />
+            <Users className="h-10 w-10" />
           </div>
           <h2 className="font-display text-2xl font-bold mb-4">
-            Professional Detailing Software
+            Join Your Team
           </h2>
-          <p className="text-muted-foreground">
-            Manage your studio, track every job, and deliver exceptional results 
-            to your customers.
+          <p className="text-muted-foreground mb-6">
+            Create your staff account first, then join your studio with the key
+            from your owner.
           </p>
+          <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+            <p className="text-sm font-medium mb-2">How it works:</p>
+            <ol className="text-sm text-muted-foreground text-left space-y-2">
+              <li>1. Create your account</li>
+              <li>2. Verify your email</li>
+              <li>3. Login and enter studio key</li>
+              <li>4. Wait for owner approval</li>
+            </ol>
+          </div>
         </div>
       </div>
     </div>

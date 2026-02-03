@@ -33,52 +33,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate("/login");
   };
 
-  const navigation = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-      show: true,
-    },
-    {
-      name: "Jobs",
-      href: "/dashboard/jobs",
-      icon: ClipboardList,
-      show: true,
-    },
-    {
-      name: "Customers",
-      href: "/dashboard/customers",
-      icon: Users,
-      show: true,
-    },
-    {
-      name: "Vehicles",
-      href: "/dashboard/vehicles",
-      icon: Car,
-      show: true,
-    },
-    {
-      name: "Staff",
-      href: "/dashboard/staff",
-      icon: UserCheck,
-      show: isOwner,
-    },
-    {
-      name: "Invoices",
-      href: "/dashboard/invoices",
-      icon: FileText,
-      show: isOwner,
-    },
-    {
-      name: "Settings",
-      href: "/dashboard/settings",
-      icon: Settings,
-      show: isOwner,
-    },
-  ];
+  const navigation = isOwner
+    ? [
+        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Jobs", href: "/dashboard/jobs", icon: ClipboardList },
+        { name: "Customers", href: "/dashboard/customers", icon: Users },
+        { name: "Vehicles", href: "/dashboard/vehicles", icon: Car },
+        { name: "Staff", href: "/dashboard/staff", icon: UserCheck },
+        { name: "Invoices", href: "/dashboard/invoices", icon: FileText },
+        { name: "Settings", href: "/dashboard/settings", icon: Settings },
+      ]
+    : [
+        { name: "My Jobs", href: "/dashboard", icon: ClipboardList },
+        { name: "Customers", href: "/dashboard/customers", icon: Users },
+        { name: "Vehicles", href: "/dashboard/vehicles", icon: Car },
+      ];
 
-  const filteredNav = navigation.filter((item) => item.show);
+  const filteredNav = navigation;
 
   return (
     <div className="min-h-screen bg-background">

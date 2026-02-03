@@ -30,7 +30,16 @@ export default function SetupPage() {
       return;
     }
 
-    // Create profile for new user
+    // Check if this is an owner or staff signup
+    const metadata = user.user_metadata || {};
+    
+    // Staff without studio_key go to onboarding to enter key
+    if (metadata.role === "staff" && !metadata.studio_key) {
+      navigate("/staff-onboarding");
+      return;
+    }
+
+    // Create profile for new user (owner or staff with key)
     setupProfile();
   }, [user, profile, loading]);
 
