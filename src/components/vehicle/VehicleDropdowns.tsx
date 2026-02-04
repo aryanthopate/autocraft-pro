@@ -77,18 +77,18 @@ export function VehicleDropdowns({
     fetchCarModels();
   }, []);
 
-  // Get unique makes from uploaded models
-  const availableMakes = [...new Set(carModels.map((m) => m.make))].sort();
+  // Get unique makes from uploaded models (trimmed)
+  const availableMakes = [...new Set(carModels.map((m) => m.make.trim()))].sort();
 
-  // Get models for selected make
+  // Get models for selected make (compare trimmed values)
   const availableModels = make && !isCustomMake
-    ? [...new Set(carModels.filter((m) => m.make === make).map((m) => m.model))].sort()
+    ? [...new Set(carModels.filter((m) => m.make.trim() === make.trim()).map((m) => m.model.trim()))].sort()
     : [];
 
   // Get years for selected make + model
   const availableYears = make && model && !isCustomMake && !isCustomModel
     ? [...new Set(carModels
-        .filter((m) => m.make === make && m.model === model && m.year)
+        .filter((m) => m.make.trim() === make.trim() && m.model.trim() === model.trim() && m.year)
         .map((m) => m.year!))]
         .sort((a, b) => b - a)
     : [];
@@ -96,7 +96,7 @@ export function VehicleDropdowns({
   // Get colors for selected make + model
   const availableColors = make && model && !isCustomMake && !isCustomModel
     ? [...new Set(carModels
-        .filter((m) => m.make === make && m.model === model && m.default_color)
+        .filter((m) => m.make.trim() === make.trim() && m.model.trim() === model.trim() && m.default_color)
         .map((m) => m.default_color!))]
     : [];
 
