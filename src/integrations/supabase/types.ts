@@ -819,7 +819,7 @@ export type Database = {
         | "cancelled"
       staff_status: "pending" | "approved" | "rejected"
       transport_type: "pickup" | "drop" | "both" | "none"
-      user_role: "owner" | "staff" | "admin"
+      user_role: "owner" | "staff" | "admin" | "mechanic"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -957,7 +957,7 @@ export const Constants = {
       ],
       staff_status: ["pending", "approved", "rejected"],
       transport_type: ["pickup", "drop", "both", "none"],
-      user_role: ["owner", "staff", "admin"],
+      user_role: ["owner", "staff", "admin", "mechanic"],
     },
   },
 } as const

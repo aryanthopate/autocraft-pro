@@ -35,7 +35,7 @@ interface StaffMember {
   full_name: string;
   email: string;
   phone: string | null;
-  role: "owner" | "staff";
+  role: "owner" | "staff" | "mechanic";
   status: "pending" | "approved" | "rejected";
   permissions: Record<string, boolean>;
   created_at: string;
@@ -318,6 +318,21 @@ export default function StaffPage() {
                             >
                               <Shield className="h-4 w-4 mr-2" />
                               Manage Permissions
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                const newRole = member.role === "mechanic" ? "staff" : "mechanic";
+                                const { error } = await supabase
+                                  .from("profiles")
+                                  .update({ role: newRole })
+                                  .eq("id", member.id);
+                                if (!error) {
+                                  toast({ title: "Role updated", description: `Changed to ${newRole}` });
+                                  fetchStaff();
+                                }
+                              }}
+                            >
+                              Switch to {member.role === "mechanic" ? "Staff" : "Mechanic"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive"

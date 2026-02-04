@@ -7,14 +7,16 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requireOwner?: boolean;
   requireApproved?: boolean;
+  allowedRoles?: ("owner" | "staff" | "mechanic")[];
 }
 
 export function ProtectedRoute({
   children,
   requireOwner = false,
   requireApproved = true,
+  allowedRoles,
 }: ProtectedRouteProps) {
-  const { user, profile, loading, isOwner, isApproved, isPending } = useAuth();
+  const { user, profile, loading, isOwner, isApproved, isPending, getDashboardRoute } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,8 +31,12 @@ export function ProtectedRoute({
     if (!profile) {
       // User exists but no profile - check if staff needs onboarding
       const metadata = user.user_metadata || {};
-      if (metadata.role === "staff" && !metadata.studio_key) {
-        navigate("/staff-onboarding");
+      if (metadata.role === "staff" || metadata.role === "mechanic") {
+        if (!metadata.studio_key) {
+          navigate("/staff-onboarding");
+        } else {
+          navigate("/setup");
+        }
       } else {
         navigate("/setup");
       }
@@ -38,7 +44,7 @@ export function ProtectedRoute({
     }
 
     if (requireApproved && !isApproved && !isOwner) {
-      // Staff needs approval
+      // Staff/mechanic needs approval
       if (isPending) {
         navigate("/pending-approval");
       } else {
@@ -48,10 +54,19 @@ export function ProtectedRoute({
     }
 
     if (requireOwner && !isOwner) {
-      navigate("/dashboard");
+      navigate(getDashboardRoute());
       return;
     }
-  }, [user, profile, loading, isOwner, isApproved, isPending, requireOwner, requireApproved, navigate, location]);
+
+    // Check role-based access
+    if (allowedRoles && allowedRoles.length > 0) {
+      const userRole = profile.role;
+      if (!allowedRoles.includes(userRole)) {
+        navigate(getDashboardRoute());
+        return;
+      }
+    }
+  }, [user, profile, loading, isOwner, isApproved, isPending, requireOwner, requireApproved, allowedRoles, navigate, location, getDashboardRoute]);
 
   if (loading) {
     return (
@@ -66,6 +81,13 @@ export function ProtectedRoute({
 
   if (!user || (requireApproved && !isApproved && !isOwner) || (requireOwner && !isOwner)) {
     return null;
+  }
+
+  // Check role access
+  if (allowedRoles && allowedRoles.length > 0 && profile) {
+    if (!allowedRoles.includes(profile.role)) {
+      return null;
+    }
   }
 
   return <>{children}</>;

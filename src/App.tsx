@@ -14,6 +14,7 @@ import SetupPage from "./pages/SetupPage";
 import PendingApprovalPage from "./pages/PendingApprovalPage";
 import DashboardPage from "./pages/DashboardPage";
 import StaffDashboardPage from "./pages/StaffDashboardPage";
+import MechanicDashboardPage from "./pages/MechanicDashboardPage";
 import JobsPage from "./pages/JobsPage";
 import NewJobPage from "./pages/NewJobPage";
 import CustomersPage from "./pages/CustomersPage";
@@ -107,6 +108,13 @@ const App = () => (
           <Route path="/staff" element={
             <ProtectedRoute>
               <StaffDashboardPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Mechanic Dashboard */}
+          <Route path="/mechanic" element={
+            <ProtectedRoute>
+              <MechanicDashboardPage />
             </ProtectedRoute>
           } />
           

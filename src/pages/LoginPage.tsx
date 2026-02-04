@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -17,6 +18,7 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, profile, loading, getDashboardRoute } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,6 +26,13 @@ export default function LoginPage() {
     password: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user && profile) {
+      navigate(getDashboardRoute());
+    }
+  }, [user, profile, loading, navigate, getDashboardRoute]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,8 +54,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email.trim(),
         password: formData.password,
       });
 
@@ -73,11 +82,40 @@ export default function LoginPage() {
         return;
       }
 
-      toast({
-        title: "Welcome back!",
-        description: "You have been logged in successfully.",
-      });
-      navigate("/dashboard");
+      // Fetch user profile to determine dashboard route
+      if (data.user) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("role, status")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+
+        toast({
+          title: "Welcome back!",
+          description: "You have been logged in successfully.",
+        });
+
+        // Check if pending approval
+        if (profileData?.status === "pending" && profileData?.role !== "owner") {
+          navigate("/pending-approval");
+          return;
+        }
+
+        // Route based on role
+        const role = profileData?.role || "staff";
+        switch (role) {
+          case "owner":
+            navigate("/dashboard");
+            break;
+          case "mechanic":
+            navigate("/mechanic");
+            break;
+          case "staff":
+          default:
+            navigate("/staff");
+            break;
+        }
+      }
     } catch (error) {
       toast({
         variant: "destructive",
