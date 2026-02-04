@@ -7,6 +7,7 @@ import { Maximize2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Hotspot3D {
   id: string;
@@ -27,6 +28,8 @@ interface Car3DViewerProps {
   selectedZones: SelectedZone[];
   onHotspotClick: (hotspot: Hotspot3D) => void;
   readOnly?: boolean;
+  vehicleMake?: string;
+  vehicleModel?: string;
 }
 
 // Premium BMW-style hotspots for car zones
@@ -48,18 +51,50 @@ const CAR_HOTSPOTS: Hotspot3D[] = [
   { id: "headlight_right", name: "Right Headlight", position: [-0.6, 0.5, 1.8], zone_type: "lighting" },
 ];
 
-// Premium 3D Car Model Component
-function CarModel({ color = "#FF6600" }: { color: string }) {
+// GLB Model Component that loads from URL
+function GLBCarModel({ modelUrl, color = "#FF6600" }: { modelUrl: string; color: string }) {
+  const { scene } = useGLTF(modelUrl);
+  const modelRef = useRef<THREE.Group>(null);
+
+  useEffect(() => {
+    // Apply color to the model's materials
+    scene.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((mat) => {
+          if (mat instanceof THREE.MeshStandardMaterial) {
+            mat.color.set(color);
+            mat.needsUpdate = true;
+          }
+        });
+      }
+    });
+  }, [scene, color]);
+
+  useFrame((state) => {
+    if (modelRef.current) {
+      // Subtle breathing animation
+      modelRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.02;
+    }
+  });
+
+  return (
+    <group ref={modelRef}>
+      <primitive object={scene} scale={1} />
+    </group>
+  );
+}
+
+// Fallback primitive car model (used when no GLB is available)
+function FallbackCarModel({ color = "#FF6600" }: { color: string }) {
   const meshRef = useRef<THREE.Group>(null);
   
   useFrame((state) => {
     if (meshRef.current) {
-      // Subtle breathing animation
       meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.02;
     }
   });
 
-  // Create a premium car shape using Three.js primitives
   return (
     <group ref={meshRef}>
       {/* Main Body */}
@@ -160,7 +195,6 @@ function CarModel({ color = "#FF6600" }: { color: string }) {
     </group>
   );
 }
-
 // Interactive Hotspot Component
 function Hotspot3DPoint({ 
   hotspot, 
@@ -260,9 +294,68 @@ export function Car3DViewer({
   carColor = "#FF6600", 
   selectedZones, 
   onHotspotClick,
-  readOnly = false 
+  readOnly = false,
+  vehicleMake,
+  vehicleModel
 }: Car3DViewerProps) {
   const controlsRef = useRef<any>(null);
+  const [modelUrl, setModelUrl] = useState<string | null>(null);
+  const [modelInfo, setModelInfo] = useState<{ make: string; model: string } | null>(null);
+  const [loadingModel, setLoadingModel] = useState(true);
+
+  // Fetch the 3D model URL based on make/model
+  useEffect(() => {
+    const fetchModel = async () => {
+      setLoadingModel(true);
+      try {
+        let query = supabase
+          .from("car_models_3d")
+          .select("make, model, model_url")
+          .eq("is_active", true);
+
+        // If make/model specified, try to match exactly
+        if (vehicleMake && vehicleModel) {
+          const { data: exactMatch } = await query
+            .ilike("make", vehicleMake.trim())
+            .ilike("model", vehicleModel.trim())
+            .limit(1)
+            .single();
+          
+          if (exactMatch) {
+            setModelUrl(exactMatch.model_url);
+            setModelInfo({ make: exactMatch.make, model: exactMatch.model });
+            setLoadingModel(false);
+            return;
+          }
+        }
+
+        // If no exact match or no make/model specified, just get the first available model
+        const { data: fallback } = await supabase
+          .from("car_models_3d")
+          .select("make, model, model_url")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (fallback) {
+          setModelUrl(fallback.model_url);
+          setModelInfo({ make: fallback.make, model: fallback.model });
+        } else {
+          setModelUrl(null);
+          setModelInfo(null);
+        }
+      } catch (error) {
+        console.error("Error fetching 3D model:", error);
+        setModelUrl(null);
+        setModelInfo(null);
+      } finally {
+        setLoadingModel(false);
+      }
+    };
+
+    fetchModel();
+  }, [vehicleMake, vehicleModel]);
 
   const handleReset = () => {
     if (controlsRef.current) {
@@ -271,6 +364,7 @@ export function Car3DViewer({
   };
 
   const totalPrice = selectedZones.reduce((sum, z) => sum + z.price, 0);
+  const displayName = modelInfo ? `${modelInfo.make} ${modelInfo.model}` : "3D Vehicle";
 
   return (
     <div className="relative">
@@ -306,9 +400,13 @@ export function Car3DViewer({
             {/* Environment */}
             <Environment preset="city" />
             
-            {/* Car Model */}
+            {/* Car Model - Use GLB if available, otherwise fallback */}
             <Center>
-              <CarModel color={carColor} />
+              {modelUrl ? (
+                <GLBCarModel modelUrl={modelUrl} color={carColor} />
+              ) : (
+                <FallbackCarModel color={carColor} />
+              )}
             </Center>
             
             {/* Hotspots */}
@@ -372,14 +470,14 @@ export function Car3DViewer({
           </div>
         </div>
         
-        {/* Car Color Badge */}
+        {/* Car Info Badge - Shows actual model name */}
         <div className="absolute top-4 right-4 z-20">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/80 backdrop-blur border border-border">
             <div 
               className="h-4 w-4 rounded-full border-2 border-white/20"
               style={{ backgroundColor: carColor }}
             />
-            <span className="text-xs font-medium">BMW M3 GTS</span>
+            <span className="text-xs font-medium">{displayName}</span>
           </div>
         </div>
       </div>
