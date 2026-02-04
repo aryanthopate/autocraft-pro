@@ -577,6 +577,8 @@ export default function NewJobPage() {
                       carColor={getCarColorHex(vehicle.color)}
                       selectedZones={selectedZones}
                       onHotspotClick={(hotspot) => setActiveHotspot(hotspot)}
+                      vehicleMake={vehicle.make}
+                      vehicleModel={vehicle.model}
                     />
                   ) : (
                     <VehicleConfigurator
