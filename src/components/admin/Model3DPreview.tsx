@@ -1,6 +1,6 @@
 import { Suspense, useState, useEffect, useRef } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Environment, Center, PerspectiveCamera } from "@react-three/drei";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { OrbitControls, useGLTF, Environment, Center } from "@react-three/drei";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, RotateCcw, ZoomIn, ZoomOut, Box, AlertCircle } from "lucide-react";
@@ -22,6 +22,7 @@ function ModelLoader({ url, color, onLoaded, onError }: {
 }) {
   const { scene } = useGLTF(url);
   const { camera } = useThree();
+  const groupRef = useRef<THREE.Group>(null);
   
   useEffect(() => {
     if (!scene) {
@@ -30,36 +31,69 @@ function ModelLoader({ url, color, onLoaded, onError }: {
     }
     
     try {
-      // Calculate bounding box to auto-fit model
-      const box = new THREE.Box3().setFromObject(scene);
+      // Clone the scene to avoid modifying the cached version
+      const clonedScene = scene.clone(true);
+      
+      // Calculate bounding box
+      const box = new THREE.Box3().setFromObject(clonedScene);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
       
-      // Scale model to fit nicely
+      // Get the maximum dimension for scaling
       const maxDim = Math.max(size.x, size.y, size.z);
-      const scale = maxDim > 0 ? 3 / maxDim : 1;
       
-      scene.scale.setScalar(scale);
-      scene.position.sub(center.multiplyScalar(scale));
+      // Scale to fit in a 4-unit box (good viewing size)
+      const targetSize = 4;
+      const scale = maxDim > 0 ? targetSize / maxDim : 1;
       
-      // Apply color to model materials
-      scene.traverse((child) => {
+      // Apply scale
+      clonedScene.scale.setScalar(scale);
+      
+      // Center the model
+      clonedScene.position.set(
+        -center.x * scale,
+        -center.y * scale,
+        -center.z * scale
+      );
+      
+      // Apply color to materials
+      clonedScene.traverse((child) => {
         if (child instanceof THREE.Mesh && child.material) {
           const materials = Array.isArray(child.material) ? child.material : [child.material];
-          materials.forEach((material) => {
-            if (material instanceof THREE.MeshStandardMaterial && material.color) {
-              const name = (material.name || '').toLowerCase();
-              // Apply to body/paint parts
+          materials.forEach((mat) => {
+            if (mat instanceof THREE.MeshStandardMaterial) {
+              // Clone material to avoid modifying cached version
+              const newMat = mat.clone();
+              const name = (newMat.name || '').toLowerCase();
+              
+              // Apply color to body/paint parts
               if (name.includes('body') || name.includes('paint') || 
                   name.includes('car') || name.includes('exterior') ||
-                  name === '' || name.includes('material')) {
-                material.color.set(color);
-                material.needsUpdate = true;
+                  name === '' || name.includes('material') || name.includes('metal')) {
+                newMat.color.set(color);
               }
+              
+              // Ensure materials are visible
+              newMat.metalness = Math.min(newMat.metalness, 0.8);
+              newMat.roughness = Math.max(newMat.roughness, 0.2);
+              child.material = newMat;
             }
           });
         }
       });
+      
+      // Update the group with cloned scene
+      if (groupRef.current) {
+        // Clear existing children
+        while (groupRef.current.children.length > 0) {
+          groupRef.current.remove(groupRef.current.children[0]);
+        }
+        groupRef.current.add(clonedScene);
+      }
+      
+      // Position camera to see the model
+      camera.position.set(5, 3, 8);
+      camera.lookAt(0, 0, 0);
       
       onLoaded();
     } catch (err) {
@@ -69,17 +103,23 @@ function ModelLoader({ url, color, onLoaded, onError }: {
   }, [scene, color, camera, onLoaded, onError]);
 
   return (
-    <Center>
-      <primitive object={scene} />
-    </Center>
+    <group ref={groupRef} />
   );
 }
 
 function LoadingFallback() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y = state.clock.elapsedTime * 0.5;
+    }
+  });
+  
   return (
-    <mesh>
+    <mesh ref={meshRef}>
       <boxGeometry args={[2, 1, 4]} />
-      <meshStandardMaterial color="#333" wireframe />
+      <meshStandardMaterial color="#444" wireframe />
     </mesh>
   );
 }
@@ -91,7 +131,6 @@ export function Model3DPreview({
   modelName,
   defaultColor = "#FF6600"
 }: Model3DPreviewProps) {
-  const [zoom, setZoom] = useState(5);
   const [color, setColor] = useState(defaultColor);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -104,7 +143,6 @@ export function Model3DPreview({
       setIsLoading(true);
       setHasError(false);
       setErrorMessage("");
-      setZoom(5);
       setColor(defaultColor);
     }
   }, [open, defaultColor]);
@@ -115,13 +153,29 @@ export function Model3DPreview({
     modelUrl.toLowerCase().endsWith('.gltf')
   );
 
-  const handleZoomIn = () => setZoom(Math.max(2, zoom - 1));
-  const handleZoomOut = () => setZoom(Math.min(10, zoom + 1));
+  const handleZoomIn = () => {
+    if (controlsRef.current) {
+      const controls = controlsRef.current;
+      const currentDistance = controls.getDistance();
+      controls.object.position.multiplyScalar(0.7);
+      controls.update();
+    }
+  };
+  
+  const handleZoomOut = () => {
+    if (controlsRef.current) {
+      const controls = controlsRef.current;
+      controls.object.position.multiplyScalar(1.3);
+      controls.update();
+    }
+  };
+  
   const handleReset = () => {
-    setZoom(5);
     setColor(defaultColor);
     if (controlsRef.current) {
       controlsRef.current.reset();
+      controlsRef.current.object.position.set(5, 3, 8);
+      controlsRef.current.update();
     }
   };
 
@@ -149,13 +203,13 @@ export function Model3DPreview({
         <div className="flex-1 relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg overflow-hidden min-h-[400px]">
           {/* Controls */}
           <div className="absolute top-4 right-4 z-10 flex gap-2">
-            <Button variant="secondary" size="icon" onClick={handleZoomIn}>
+            <Button variant="secondary" size="icon" onClick={handleZoomIn} title="Zoom In">
               <ZoomIn className="h-4 w-4" />
             </Button>
-            <Button variant="secondary" size="icon" onClick={handleZoomOut}>
+            <Button variant="secondary" size="icon" onClick={handleZoomOut} title="Zoom Out">
               <ZoomOut className="h-4 w-4" />
             </Button>
-            <Button variant="secondary" size="icon" onClick={handleReset}>
+            <Button variant="secondary" size="icon" onClick={handleReset} title="Reset View">
               <RotateCcw className="h-4 w-4" />
             </Button>
           </div>
@@ -205,12 +259,13 @@ export function Model3DPreview({
               className="h-full w-full"
               gl={{ antialias: true, alpha: true }}
               dpr={[1, 2]}
+              camera={{ position: [5, 3, 8], fov: 45 }}
             >
-              <PerspectiveCamera makeDefault position={[0, 2, zoom]} fov={50} />
-              <ambientLight intensity={0.6} />
-              <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1.5} castShadow />
-              <spotLight position={[-10, 10, -10]} angle={0.15} penumbra={1} intensity={0.8} />
-              <directionalLight position={[0, 5, 5]} intensity={0.5} />
+              <ambientLight intensity={0.8} />
+              <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} castShadow />
+              <spotLight position={[-10, 10, -10]} angle={0.15} penumbra={1} intensity={1} />
+              <directionalLight position={[0, 10, 5]} intensity={1} />
+              <pointLight position={[0, -5, 0]} intensity={0.3} />
               
               <Suspense fallback={<LoadingFallback />}>
                 <ModelLoader 
@@ -226,12 +281,12 @@ export function Model3DPreview({
                 ref={controlsRef}
                 enableZoom={true}
                 enablePan={true}
-                minPolarAngle={0}
-                maxPolarAngle={Math.PI}
-                minDistance={2}
-                maxDistance={20}
+                zoomSpeed={2}
+                rotateSpeed={1}
+                minDistance={0.5}
+                maxDistance={100}
                 enableDamping
-                dampingFactor={0.05}
+                dampingFactor={0.1}
               />
             </Canvas>
           )}
