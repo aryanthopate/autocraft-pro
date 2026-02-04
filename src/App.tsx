@@ -26,6 +26,8 @@ import NotFound from "./pages/NotFound";
 import AdminPage from "./pages/AdminPage";
 import AdminSignUpPage from "./pages/AdminSignUpPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminProtectedRoute } from "./components/auth/AdminProtectedRoute";
 
@@ -50,6 +52,9 @@ const App = () => (
           <Route path="/pending-approval" element={<PendingApprovalPage />} />
           <Route path="/admin-signup" element={<AdminSignUpPage />} />
           <Route path="/admin-login" element={<AdminLoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/admin-forgot-password" element={<ForgotPasswordPage isAdmin />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           
           {/* Protected routes - Owner Dashboard */}
           <Route path="/dashboard" element={
