@@ -9,7 +9,7 @@ export interface UserProfile {
   full_name: string;
   email: string;
   phone: string | null;
-  role: "owner" | "staff";
+  role: "owner" | "staff" | "mechanic";
   status: "pending" | "approved" | "rejected";
   permissions: Record<string, boolean>;
   avatar_url: string | null;
@@ -114,8 +114,25 @@ export function useAuth() {
   };
 
   const isOwner = profile?.role === "owner";
+  const isStaff = profile?.role === "staff";
+  const isMechanic = profile?.role === "mechanic";
   const isApproved = profile?.status === "approved";
   const isPending = profile?.status === "pending";
+
+  // Helper to get dashboard route based on role
+  const getDashboardRoute = () => {
+    if (!profile) return "/dashboard";
+    switch (profile.role) {
+      case "owner":
+        return "/dashboard";
+      case "staff":
+        return "/staff";
+      case "mechanic":
+        return "/mechanic";
+      default:
+        return "/dashboard";
+    }
+  };
 
   return {
     user,
@@ -125,9 +142,12 @@ export function useAuth() {
     loading,
     signOut,
     isOwner,
+    isStaff,
+    isMechanic,
     isApproved,
     isPending,
     isAuthenticated: !!user,
     refetchProfile: () => user && fetchProfile(user.id),
+    getDashboardRoute,
   };
 }
