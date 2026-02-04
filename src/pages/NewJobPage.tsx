@@ -505,41 +505,27 @@ export default function NewJobPage() {
                   </div>
                 )}
 
-                {/* Vehicle type selector */}
-                <div className="space-y-3">
-                  <Label>Vehicle Type *</Label>
-                  <div className="flex gap-3">
-                    {(["sedan", "suv", "bike"] as VehicleType[]).map((type) => (
-                      <motion.button
-                        key={type}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setVehicle({ ...vehicle, vehicle_type: type })}
-                        className={cn(
-                          "flex-1 py-4 rounded-xl border-2 font-medium transition-all",
-                          vehicle.vehicle_type === type
-                            ? "bg-racing text-white border-racing"
-                            : "bg-card border-border hover:border-racing/50"
-                        )}
-                      >
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Vehicle details - Cascading Dropdowns */}
+                {/* Vehicle details with integrated type selector */}
                 <VehicleDropdowns
+                  showVehicleType={true}
+                  vehicleType={vehicle.vehicle_type as any}
                   make={vehicle.make}
                   model={vehicle.model}
                   year={vehicle.year}
                   color={vehicle.color}
                   registrationNumber={vehicle.registration_number}
-                  onMakeChange={(make) => setVehicle({ ...vehicle, make, model: "", year: "" })}
-                  onModelChange={(model) => setVehicle({ ...vehicle, model, year: "" })}
-                  onYearChange={(year) => setVehicle({ ...vehicle, year })}
-                  onColorChange={(color) => setVehicle({ ...vehicle, color })}
-                  onRegistrationChange={(registration_number) => setVehicle({ ...vehicle, registration_number })}
+                  onVehicleTypeChange={(type) => setVehicle({ ...vehicle, vehicle_type: type as VehicleType })}
+                  onMakeChange={(newMake) => {
+                    console.log("Parent onMakeChange:", newMake);
+                    setVehicle(prev => ({ ...prev, make: newMake, model: "", year: "", color: "" }));
+                  }}
+                  onModelChange={(newModel) => {
+                    console.log("Parent onModelChange:", newModel);
+                    setVehicle(prev => ({ ...prev, model: newModel, year: "", color: "" }));
+                  }}
+                  onYearChange={(newYear) => setVehicle(prev => ({ ...prev, year: newYear }))}
+                  onColorChange={(newColor) => setVehicle(prev => ({ ...prev, color: newColor }))}
+                  onRegistrationChange={(reg) => setVehicle(prev => ({ ...prev, registration_number: reg }))}
                 />
               </CardContent>
             </Card>
