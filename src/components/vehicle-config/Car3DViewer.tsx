@@ -32,31 +32,89 @@ interface Car3DViewerProps {
   vehicleModel?: string;
 }
 
-// Premium BMW-style hotspots for car zones
-const CAR_HOTSPOTS: Hotspot3D[] = [
-  { id: "hood", name: "Hood", position: [0, 0.8, 1.5], zone_type: "exterior" },
-  { id: "roof", name: "Roof", position: [0, 1.2, 0], zone_type: "exterior" },
-  { id: "trunk", name: "Trunk", position: [0, 0.7, -1.5], zone_type: "exterior" },
-  { id: "front_bumper", name: "Front Bumper", position: [0, 0.3, 2], zone_type: "exterior" },
-  { id: "rear_bumper", name: "Rear Bumper", position: [0, 0.3, -2], zone_type: "exterior" },
-  { id: "driver_door", name: "Driver Door", position: [0.9, 0.6, 0.3], zone_type: "exterior" },
-  { id: "passenger_door", name: "Passenger Door", position: [-0.9, 0.6, 0.3], zone_type: "exterior" },
-  { id: "front_left_wheel", name: "Front Left Wheel", position: [0.8, 0.3, 1.2], zone_type: "wheels" },
-  { id: "front_right_wheel", name: "Front Right Wheel", position: [-0.8, 0.3, 1.2], zone_type: "wheels" },
-  { id: "rear_left_wheel", name: "Rear Left Wheel", position: [0.8, 0.3, -1.2], zone_type: "wheels" },
-  { id: "rear_right_wheel", name: "Rear Right Wheel", position: [-0.8, 0.3, -1.2], zone_type: "wheels" },
-  { id: "windshield", name: "Windshield", position: [0, 1, 0.8], zone_type: "glass" },
-  { id: "rear_windshield", name: "Rear Windshield", position: [0, 1, -0.8], zone_type: "glass" },
-  { id: "headlight_left", name: "Left Headlight", position: [0.6, 0.5, 1.8], zone_type: "lighting" },
-  { id: "headlight_right", name: "Right Headlight", position: [-0.6, 0.5, 1.8], zone_type: "lighting" },
+// Hotspot definitions using relative positions (0-1 range that scales with model)
+// These are multiplied by actual model bounds at runtime
+const HOTSPOT_DEFINITIONS = [
+  { id: "hood", name: "Hood", relPos: [0, 0.5, 0.7], zone_type: "exterior" },
+  { id: "roof", name: "Roof", relPos: [0, 0.85, 0], zone_type: "exterior" },
+  { id: "trunk", name: "Trunk", relPos: [0, 0.45, -0.7], zone_type: "exterior" },
+  { id: "front_bumper", name: "Front Bumper", relPos: [0, 0.2, 0.95], zone_type: "exterior" },
+  { id: "rear_bumper", name: "Rear Bumper", relPos: [0, 0.2, -0.95], zone_type: "exterior" },
+  { id: "driver_door", name: "Driver Door", relPos: [0.5, 0.4, 0.1], zone_type: "exterior" },
+  { id: "passenger_door", name: "Passenger Door", relPos: [-0.5, 0.4, 0.1], zone_type: "exterior" },
+  { id: "front_left_wheel", name: "Front Left Wheel", relPos: [0.45, 0.15, 0.55], zone_type: "wheels" },
+  { id: "front_right_wheel", name: "Front Right Wheel", relPos: [-0.45, 0.15, 0.55], zone_type: "wheels" },
+  { id: "rear_left_wheel", name: "Rear Left Wheel", relPos: [0.45, 0.15, -0.55], zone_type: "wheels" },
+  { id: "rear_right_wheel", name: "Rear Right Wheel", relPos: [-0.45, 0.15, -0.55], zone_type: "wheels" },
+  { id: "windshield", name: "Windshield", relPos: [0, 0.7, 0.4], zone_type: "glass" },
+  { id: "rear_windshield", name: "Rear Windshield", relPos: [0, 0.65, -0.4], zone_type: "glass" },
+  { id: "headlight_left", name: "Left Headlight", relPos: [0.35, 0.3, 0.9], zone_type: "lighting" },
+  { id: "headlight_right", name: "Right Headlight", relPos: [-0.35, 0.3, 0.9], zone_type: "lighting" },
 ];
 
-// GLB Model Component that loads from URL
-function GLBCarModel({ modelUrl, color = "#FF6600" }: { modelUrl: string; color: string }) {
+// Default fallback hotspots when no model bounds available
+const DEFAULT_CAR_HOTSPOTS: Hotspot3D[] = HOTSPOT_DEFINITIONS.map(h => ({
+  id: h.id,
+  name: h.name,
+  position: [h.relPos[0] * 2, h.relPos[1] * 1.5, h.relPos[2] * 2] as [number, number, number],
+  zone_type: h.zone_type
+}));
+
+// Function to compute hotspots based on model bounds
+function computeHotspots(bounds: { width: number; height: number; depth: number } | null): Hotspot3D[] {
+  if (!bounds) return DEFAULT_CAR_HOTSPOTS;
+  
+  const { width, height, depth } = bounds;
+  return HOTSPOT_DEFINITIONS.map(h => ({
+    id: h.id,
+    name: h.name,
+    position: [
+      h.relPos[0] * width,
+      h.relPos[1] * height,
+      h.relPos[2] * depth
+    ] as [number, number, number],
+    zone_type: h.zone_type
+  }));
+}
+
+// GLB Model Component that loads from URL and auto-scales
+function GLBCarModel({ 
+  modelUrl, 
+  color = "#FF6600",
+  onBoundsCalculated 
+}: { 
+  modelUrl: string; 
+  color: string;
+  onBoundsCalculated?: (bounds: { width: number; height: number; depth: number }) => void;
+}) {
   const { scene } = useGLTF(modelUrl);
   const modelRef = useRef<THREE.Group>(null);
+  const [modelScale, setModelScale] = useState(1);
 
   useEffect(() => {
+    // Clone the scene to avoid modifying the cached version
+    const clonedScene = scene.clone();
+    
+    // Calculate bounding box to auto-scale the model
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    
+    // Target size: model should fit within ~4 units
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const targetSize = 4;
+    const scale = targetSize / maxDim;
+    setModelScale(scale);
+    
+    // Report bounds for hotspot positioning
+    if (onBoundsCalculated) {
+      onBoundsCalculated({
+        width: size.x * scale,
+        height: size.y * scale,
+        depth: size.z * scale
+      });
+    }
+
     // Apply color to the model's materials
     scene.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material) {
@@ -69,7 +127,7 @@ function GLBCarModel({ modelUrl, color = "#FF6600" }: { modelUrl: string; color:
         });
       }
     });
-  }, [scene, color]);
+  }, [scene, color, onBoundsCalculated]);
 
   useFrame((state) => {
     if (modelRef.current) {
@@ -80,7 +138,7 @@ function GLBCarModel({ modelUrl, color = "#FF6600" }: { modelUrl: string; color:
 
   return (
     <group ref={modelRef}>
-      <primitive object={scene} scale={1} />
+      <primitive object={scene} scale={modelScale} />
     </group>
   );
 }
@@ -302,24 +360,26 @@ export function Car3DViewer({
   const [modelUrl, setModelUrl] = useState<string | null>(null);
   const [modelInfo, setModelInfo] = useState<{ make: string; model: string } | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
+  const [modelBounds, setModelBounds] = useState<{ width: number; height: number; depth: number } | null>(null);
+
+  // Compute hotspots based on model bounds
+  const hotspots = computeHotspots(modelBounds);
 
   // Fetch the 3D model URL based on make/model
   useEffect(() => {
     const fetchModel = async () => {
       setLoadingModel(true);
       try {
-        let query = supabase
-          .from("car_models_3d")
-          .select("make, model, model_url")
-          .eq("is_active", true);
-
         // If make/model specified, try to match exactly
         if (vehicleMake && vehicleModel) {
-          const { data: exactMatch } = await query
+          const { data: exactMatch } = await supabase
+            .from("car_models_3d")
+            .select("make, model, model_url")
+            .eq("is_active", true)
             .ilike("make", vehicleMake.trim())
             .ilike("model", vehicleModel.trim())
             .limit(1)
-            .single();
+            .maybeSingle();
           
           if (exactMatch) {
             setModelUrl(exactMatch.model_url);
@@ -336,7 +396,7 @@ export function Car3DViewer({
           .eq("is_active", true)
           .order("created_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (fallback) {
           setModelUrl(fallback.model_url);
@@ -403,14 +463,18 @@ export function Car3DViewer({
             {/* Car Model - Use GLB if available, otherwise fallback */}
             <Center>
               {modelUrl ? (
-                <GLBCarModel modelUrl={modelUrl} color={carColor} />
+                <GLBCarModel 
+                  modelUrl={modelUrl} 
+                  color={carColor} 
+                  onBoundsCalculated={setModelBounds}
+                />
               ) : (
                 <FallbackCarModel color={carColor} />
               )}
             </Center>
             
-            {/* Hotspots */}
-            {CAR_HOTSPOTS.map((hotspot) => (
+            {/* Hotspots - positioned based on model bounds */}
+            {hotspots.map((hotspot) => (
               <Hotspot3DPoint
                 key={hotspot.id}
                 hotspot={hotspot}
@@ -508,5 +572,5 @@ export function Car3DViewer({
   );
 }
 
-export { CAR_HOTSPOTS };
+export { DEFAULT_CAR_HOTSPOTS as CAR_HOTSPOTS };
 export type { Hotspot3D, SelectedZone };
