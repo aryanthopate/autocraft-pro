@@ -25,14 +25,11 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
         return;
       }
 
-      // Check if user is in admins table
-      const { data: adminData, error } = await supabase
-        .from("admins")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      // Check if user is in admins table using security definer function (bypasses RLS)
+      const { data: adminId, error } = await supabase
+        .rpc("check_is_admin", { p_user_id: user.id });
 
-      if (error || !adminData) {
+      if (error || !adminId) {
         // Get user's profile to determine where to redirect
         const { data: profile } = await supabase
           .from("profiles")
