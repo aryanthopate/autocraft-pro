@@ -75,14 +75,11 @@ export default function AdminLoginPage() {
       }
 
       if (authData.user) {
-        // Check if user is in admins table
-        const { data: adminData, error: adminError } = await supabase
-          .from("admins")
-          .select("id")
-          .eq("user_id", authData.user.id)
-          .maybeSingle();
+        // Check if user is in admins table using security definer function (bypasses RLS)
+        const { data: adminId, error: adminError } = await supabase
+          .rpc("check_is_admin", { p_user_id: authData.user.id });
 
-        if (adminError || !adminData) {
+        if (adminError || !adminId) {
           // Sign out if not an admin
           await supabase.auth.signOut();
           toast({

@@ -792,6 +792,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_is_admin: { Args: { p_user_id: string }; Returns: string }
       create_admin_on_signup: {
         Args: { p_email: string; p_full_name: string; p_user_id: string }
         Returns: boolean
