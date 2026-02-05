@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows, useGLTF, Html, Center } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
-import { Maximize2, Loader2 } from "lucide-react";
+ import { Maximize2, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ interface Car3DViewerProps {
   readOnly?: boolean;
   vehicleMake?: string;
   vehicleModel?: string;
+   onZoneRemove?: (zoneId: string) => void;
 }
 
 // Hotspot definitions using relative positions (0-1 range that scales with model)
@@ -354,11 +355,12 @@ export function Car3DViewer({
   onHotspotClick,
   readOnly = false,
   vehicleMake,
-  vehicleModel
+   vehicleModel,
+   onZoneRemove
 }: Car3DViewerProps) {
   const controlsRef = useRef<any>(null);
   const [modelUrl, setModelUrl] = useState<string | null>(null);
-  const [modelInfo, setModelInfo] = useState<{ make: string; model: string } | null>(null);
+   const [modelInfo, setModelInfo] = useState<{ make: string; model: string; default_color?: string | null } | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
   const [modelBounds, setModelBounds] = useState<{ width: number; height: number; depth: number } | null>(null);
 
@@ -374,7 +376,7 @@ export function Car3DViewer({
         if (vehicleMake && vehicleModel) {
           const { data: exactMatch } = await supabase
             .from("car_models_3d")
-            .select("make, model, model_url")
+             .select("make, model, model_url, default_color")
             .eq("is_active", true)
             .ilike("make", vehicleMake.trim())
             .ilike("model", vehicleModel.trim())
@@ -383,7 +385,7 @@ export function Car3DViewer({
           
           if (exactMatch) {
             setModelUrl(exactMatch.model_url);
-            setModelInfo({ make: exactMatch.make, model: exactMatch.model });
+             setModelInfo({ make: exactMatch.make, model: exactMatch.model, default_color: exactMatch.default_color });
             setLoadingModel(false);
             return;
           }
@@ -392,7 +394,7 @@ export function Car3DViewer({
         // If no exact match or no make/model specified, just get the first available model
         const { data: fallback } = await supabase
           .from("car_models_3d")
-          .select("make, model, model_url")
+           .select("make, model, model_url, default_color")
           .eq("is_active", true)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -400,7 +402,7 @@ export function Car3DViewer({
 
         if (fallback) {
           setModelUrl(fallback.model_url);
-          setModelInfo({ make: fallback.make, model: fallback.model });
+           setModelInfo({ make: fallback.make, model: fallback.model, default_color: fallback.default_color });
         } else {
           setModelUrl(null);
           setModelInfo(null);
@@ -425,6 +427,8 @@ export function Car3DViewer({
 
   const totalPrice = selectedZones.reduce((sum, z) => sum + z.price, 0);
   const displayName = modelInfo ? `${modelInfo.make} ${modelInfo.model}` : "3D Vehicle";
+   // Use the model's default color if no user color is set, otherwise use the passed carColor
+   const effectiveColor = carColor || modelInfo?.default_color || "#FF6600";
 
   return (
     <div className="relative">
@@ -465,11 +469,11 @@ export function Car3DViewer({
               {modelUrl ? (
                 <GLBCarModel 
                   modelUrl={modelUrl} 
-                  color={carColor} 
+                   color={effectiveColor} 
                   onBoundsCalculated={setModelBounds}
                 />
               ) : (
-                <FallbackCarModel color={carColor} />
+                 <FallbackCarModel color={effectiveColor} />
               )}
             </Center>
             
@@ -485,17 +489,13 @@ export function Car3DViewer({
             ))}
             
             {/* Floor */}
-            <ContactShadows 
-              position={[0, -0.05, 0]} 
-              opacity={0.6} 
-              scale={10} 
-              blur={2} 
-              far={4}
-            />
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
-              <planeGeometry args={[20, 20]} />
-              <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.8} />
-            </mesh>
+             <ContactShadows 
+               position={[0, -0.05, 0]} 
+               opacity={0.4} 
+               scale={10} 
+               blur={2.5} 
+               far={4}
+             />
             
             {/* Camera Controls - Manual rotation only */}
             <CameraController />
@@ -539,7 +539,7 @@ export function Car3DViewer({
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/80 backdrop-blur border border-border">
             <div 
               className="h-4 w-4 rounded-full border-2 border-white/20"
-              style={{ backgroundColor: carColor }}
+               style={{ backgroundColor: effectiveColor }}
             />
             <span className="text-xs font-medium">{displayName}</span>
           </div>
@@ -561,8 +561,16 @@ export function Car3DViewer({
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedZones.map((zone) => (
-              <Badge key={zone.id} variant="secondary" className="text-xs">
+               <Badge key={zone.id} variant="secondary" className="text-xs pr-1.5 flex items-center gap-1.5">
                 {zone.name} • {zone.services.length} services
+                 {onZoneRemove && !readOnly && (
+                   <button
+                     onClick={() => onZoneRemove(zone.id)}
+                     className="p-0.5 rounded-full hover:bg-destructive/20 transition-colors"
+                   >
+                     <X className="h-3 w-3 text-destructive" />
+                   </button>
+                 )}
               </Badge>
             ))}
           </div>

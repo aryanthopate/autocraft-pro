@@ -53,6 +53,7 @@ export type Database = {
           thumbnail_url: string | null
           updated_at: string
           uploaded_by: string | null
+          vehicle_category: string
           year: number | null
         }
         Insert: {
@@ -66,6 +67,7 @@ export type Database = {
           thumbnail_url?: string | null
           updated_at?: string
           uploaded_by?: string | null
+          vehicle_category?: string
           year?: number | null
         }
         Update: {
@@ -79,6 +81,7 @@ export type Database = {
           thumbnail_url?: string | null
           updated_at?: string
           uploaded_by?: string | null
+          vehicle_category?: string
           year?: number | null
         }
         Relationships: [
