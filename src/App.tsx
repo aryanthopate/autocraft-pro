@@ -25,6 +25,7 @@ import JobDetailPage from "./pages/JobDetailPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import NotFound from "./pages/NotFound";
 import AdminPage from "./pages/AdminPage";
+ import AdminModelsPage from "./pages/AdminModelsPage";
 import AdminSignUpPage from "./pages/AdminSignUpPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -124,6 +125,11 @@ const App = () => (
               <AdminPage />
             </AdminProtectedRoute>
           } />
+           <Route path="/admin/models" element={
+             <AdminProtectedRoute>
+               <AdminModelsPage />
+             </AdminProtectedRoute>
+           } />
           
           <Route path="*" element={<NotFound />} />
         </Routes>

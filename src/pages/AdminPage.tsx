@@ -21,7 +21,10 @@ import {
   Box,
   Trash2,
   Loader2,
-  Play
+   Play,
+   Bike,
+   Truck,
+   Grid
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +50,22 @@ import {
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { Model3DPreview } from "@/components/admin/Model3DPreview";
+ import { useNavigate } from "react-router-dom";
+ import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+ } from "@/components/ui/select";
+ 
+ const VEHICLE_CATEGORIES = [
+   { value: "car", label: "Car", icon: Car },
+   { value: "suv", label: "SUV", icon: Truck },
+   { value: "bike", label: "Bike", icon: Bike },
+   { value: "truck", label: "Truck", icon: Truck },
+   { value: "van", label: "Van", icon: Truck },
+ ];
 
 interface Studio {
   id: string;
@@ -105,9 +124,11 @@ interface CarModel3D {
   default_color: string | null;
   is_active: boolean;
   created_at: string;
+   vehicle_category: string;
 }
 
 export default function AdminPage() {
+   const navigate = useNavigate();
   const { toast } = useToast();
   const [studios, setStudios] = useState<Studio[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,7 +151,8 @@ export default function AdminPage() {
     make: "",
     model: "",
     year: "",
-    default_color: "#FF6600"
+     default_color: "#FF6600",
+     vehicle_category: "car"
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -196,6 +218,7 @@ export default function AdminPage() {
           year: newModel.year ? parseInt(newModel.year) : null,
           model_url: publicUrl,
           default_color: newModel.default_color,
+           vehicle_category: newModel.vehicle_category,
         });
       
       if (insertError) throw insertError;
@@ -206,7 +229,7 @@ export default function AdminPage() {
       });
       
       setShowModelUpload(false);
-      setNewModel({ make: "", model: "", year: "", default_color: "#FF6600" });
+       setNewModel({ make: "", model: "", year: "", default_color: "#FF6600", vehicle_category: "car" });
       setSelectedFile(null);
       fetchCarModels3D();
     } catch (error: any) {
@@ -402,10 +425,16 @@ export default function AdminPage() {
                   Upload and manage 3D car models for the configurator
                 </CardDescription>
               </div>
-              <Button onClick={() => setShowModelUpload(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Model
-              </Button>
+               <div className="flex gap-2">
+                 <Button variant="outline" onClick={() => navigate("/admin/models")}>
+                   <Grid className="h-4 w-4 mr-2" />
+                   View All
+                 </Button>
+                 <Button onClick={() => setShowModelUpload(true)}>
+                   <Upload className="h-4 w-4 mr-2" />
+                   Upload Model
+                 </Button>
+               </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -420,8 +449,8 @@ export default function AdminPage() {
                 <p className="text-sm text-muted-foreground">Upload your first 3D car model</p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {carModels3D.map((model) => (
+               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                 {carModels3D.slice(0, 6).map((model) => (
                   <Card key={model.id} className="relative group">
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
@@ -439,26 +468,31 @@ export default function AdminPage() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex gap-1">
+                         <div className="flex flex-col items-end gap-1">
+                           <Badge variant="outline" className="text-xs capitalize">
+                             {model.vehicle_category || "car"}
+                           </Badge>
+                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
                             variant="ghost" 
                             size="icon"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                             className="h-7 w-7"
                             onClick={() => setPreviewModel(model)}
                             title="Preview model"
                           >
-                            <Play className="h-4 w-4" />
+                             <Play className="h-3.5 w-3.5" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                             className="h-7 w-7 text-destructive"
                             onClick={() => handleDelete3DModel(model)}
                             title="Delete model"
                           >
-                            <Trash2 className="h-4 w-4" />
+                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
+                         </div>
                       </div>
                       <div className="mt-4 pt-4 border-t flex items-center justify-between">
                         <div>
@@ -845,7 +879,30 @@ export default function AdminPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Default Color</Label>
+                 <Label>Vehicle Category *</Label>
+                 <Select 
+                   value={newModel.vehicle_category} 
+                   onValueChange={(v) => setNewModel({ ...newModel, vehicle_category: v })}
+                 >
+                   <SelectTrigger>
+                     <SelectValue placeholder="Select category" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     {VEHICLE_CATEGORIES.map((cat) => (
+                       <SelectItem key={cat.value} value={cat.value}>
+                         <div className="flex items-center gap-2">
+                           <cat.icon className="h-4 w-4" />
+                           {cat.label}
+                         </div>
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+             </div>
+             
+             <div className="space-y-2">
+               <Label>Default Color</Label>
                 <div className="flex gap-2">
                   <Input
                     type="color"
@@ -859,7 +916,6 @@ export default function AdminPage() {
                     placeholder="#FF6600"
                   />
                 </div>
-              </div>
             </div>
             
             <div className="space-y-2">

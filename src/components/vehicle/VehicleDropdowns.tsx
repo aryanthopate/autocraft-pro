@@ -401,7 +401,7 @@ export function VehicleDropdowns({
 
         {/* Color */}
         <div>
-          <Label>Color</Label>
+           <Label>Color <span className="text-muted-foreground font-normal">(optional - uses default if empty)</span></Label>
           {isCustomColor || isCustomModel || isCustomMake ? (
             <div className="flex gap-2 mt-1.5">
               <Input
