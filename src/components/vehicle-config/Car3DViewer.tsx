@@ -30,12 +30,12 @@ interface Car3DViewerProps {
   readOnly?: boolean;
   vehicleMake?: string;
   vehicleModel?: string;
-   onZoneRemove?: (zoneId: string) => void;
+  vehicleCategory?: string;
+  onZoneRemove?: (zoneId: string) => void;
 }
 
-// Hotspot definitions using relative positions (0-1 range that scales with model)
-// These are multiplied by actual model bounds at runtime
-const HOTSPOT_DEFINITIONS = [
+// CAR/SUV/TRUCK Hotspot definitions using relative positions (0-1 range that scales with model)
+const CAR_HOTSPOT_DEFINITIONS = [
   { id: "hood", name: "Hood", relPos: [0, 0.5, 0.7], zone_type: "exterior" },
   { id: "roof", name: "Roof", relPos: [0, 0.85, 0], zone_type: "exterior" },
   { id: "trunk", name: "Trunk", relPos: [0, 0.45, -0.7], zone_type: "exterior" },
@@ -53,20 +53,62 @@ const HOTSPOT_DEFINITIONS = [
   { id: "headlight_right", name: "Right Headlight", relPos: [-0.35, 0.3, 0.9], zone_type: "lighting" },
 ];
 
+// BIKE/MOTORCYCLE Hotspot definitions - completely different layout
+const BIKE_HOTSPOT_DEFINITIONS = [
+  { id: "fuel_tank", name: "Fuel Tank", relPos: [0, 0.7, 0.2], zone_type: "exterior" },
+  { id: "seat", name: "Seat", relPos: [0, 0.65, -0.2], zone_type: "exterior" },
+  { id: "front_fairing", name: "Front Fairing", relPos: [0, 0.5, 0.8], zone_type: "exterior" },
+  { id: "rear_cowl", name: "Rear Cowl", relPos: [0, 0.55, -0.6], zone_type: "exterior" },
+  { id: "engine", name: "Engine", relPos: [0.3, 0.3, 0], zone_type: "mechanical" },
+  { id: "exhaust", name: "Exhaust", relPos: [0.4, 0.2, -0.4], zone_type: "mechanical" },
+  { id: "front_wheel", name: "Front Wheel", relPos: [0, 0.15, 0.7], zone_type: "wheels" },
+  { id: "rear_wheel", name: "Rear Wheel", relPos: [0, 0.15, -0.7], zone_type: "wheels" },
+  { id: "headlight", name: "Headlight", relPos: [0, 0.6, 0.9], zone_type: "lighting" },
+  { id: "taillight", name: "Taillight", relPos: [0, 0.5, -0.85], zone_type: "lighting" },
+  { id: "handlebar", name: "Handlebar", relPos: [0, 0.85, 0.5], zone_type: "controls" },
+  { id: "mirrors", name: "Mirrors", relPos: [0.35, 0.8, 0.4], zone_type: "glass" },
+];
+
+// Get hotspot definitions based on category
+function getHotspotDefinitions(category: string) {
+  switch (category) {
+    case "bike":
+      return BIKE_HOTSPOT_DEFINITIONS;
+    case "car":
+    case "suv":
+    case "truck":
+    case "van":
+    default:
+      return CAR_HOTSPOT_DEFINITIONS;
+  }
+}
+
 // Default fallback hotspots when no model bounds available
-const DEFAULT_CAR_HOTSPOTS: Hotspot3D[] = HOTSPOT_DEFINITIONS.map(h => ({
+const DEFAULT_CAR_HOTSPOTS: Hotspot3D[] = CAR_HOTSPOT_DEFINITIONS.map(h => ({
   id: h.id,
   name: h.name,
   position: [h.relPos[0] * 2, h.relPos[1] * 1.5, h.relPos[2] * 2] as [number, number, number],
   zone_type: h.zone_type
 }));
 
-// Function to compute hotspots based on model bounds
-function computeHotspots(bounds: { width: number; height: number; depth: number } | null): Hotspot3D[] {
-  if (!bounds) return DEFAULT_CAR_HOTSPOTS;
+// Function to compute hotspots based on model bounds and category
+function computeHotspots(
+  bounds: { width: number; height: number; depth: number } | null,
+  category: string = "car"
+): Hotspot3D[] {
+  const definitions = getHotspotDefinitions(category);
+  
+  if (!bounds) {
+    return definitions.map(h => ({
+      id: h.id,
+      name: h.name,
+      position: [h.relPos[0] * 2, h.relPos[1] * 1.5, h.relPos[2] * 2] as [number, number, number],
+      zone_type: h.zone_type
+    }));
+  }
   
   const { width, height, depth } = bounds;
-  return HOTSPOT_DEFINITIONS.map(h => ({
+  return definitions.map(h => ({
     id: h.id,
     name: h.name,
     position: [
@@ -355,17 +397,26 @@ export function Car3DViewer({
   onHotspotClick,
   readOnly = false,
   vehicleMake,
-   vehicleModel,
-   onZoneRemove
+  vehicleModel,
+  vehicleCategory = "car",
+  onZoneRemove
 }: Car3DViewerProps) {
   const controlsRef = useRef<any>(null);
   const [modelUrl, setModelUrl] = useState<string | null>(null);
-   const [modelInfo, setModelInfo] = useState<{ make: string; model: string; default_color?: string | null } | null>(null);
+  const [modelInfo, setModelInfo] = useState<{ 
+    make: string; 
+    model: string; 
+    default_color?: string | null;
+    vehicle_category?: string;
+  } | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
   const [modelBounds, setModelBounds] = useState<{ width: number; height: number; depth: number } | null>(null);
 
-  // Compute hotspots based on model bounds
-  const hotspots = computeHotspots(modelBounds);
+  // Get the effective category from model info or prop
+  const effectiveCategory = modelInfo?.vehicle_category || vehicleCategory || "car";
+
+  // Compute hotspots based on model bounds AND category
+  const hotspots = computeHotspots(modelBounds, effectiveCategory);
 
   // Fetch the 3D model URL based on make/model
   useEffect(() => {
@@ -376,7 +427,7 @@ export function Car3DViewer({
         if (vehicleMake && vehicleModel) {
           const { data: exactMatch } = await supabase
             .from("car_models_3d")
-             .select("make, model, model_url, default_color")
+            .select("make, model, model_url, default_color, vehicle_category")
             .eq("is_active", true)
             .ilike("make", vehicleMake.trim())
             .ilike("model", vehicleModel.trim())
@@ -385,7 +436,12 @@ export function Car3DViewer({
           
           if (exactMatch) {
             setModelUrl(exactMatch.model_url);
-             setModelInfo({ make: exactMatch.make, model: exactMatch.model, default_color: exactMatch.default_color });
+            setModelInfo({ 
+              make: exactMatch.make, 
+              model: exactMatch.model, 
+              default_color: exactMatch.default_color,
+              vehicle_category: exactMatch.vehicle_category
+            });
             setLoadingModel(false);
             return;
           }
@@ -394,7 +450,7 @@ export function Car3DViewer({
         // If no exact match or no make/model specified, just get the first available model
         const { data: fallback } = await supabase
           .from("car_models_3d")
-           .select("make, model, model_url, default_color")
+          .select("make, model, model_url, default_color, vehicle_category")
           .eq("is_active", true)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -402,7 +458,12 @@ export function Car3DViewer({
 
         if (fallback) {
           setModelUrl(fallback.model_url);
-           setModelInfo({ make: fallback.make, model: fallback.model, default_color: fallback.default_color });
+          setModelInfo({ 
+            make: fallback.make, 
+            model: fallback.model, 
+            default_color: fallback.default_color,
+            vehicle_category: fallback.vehicle_category
+          });
         } else {
           setModelUrl(null);
           setModelInfo(null);

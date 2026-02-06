@@ -579,7 +579,8 @@ export default function NewJobPage() {
                       onHotspotClick={(hotspot) => setActiveHotspot(hotspot)}
                       vehicleMake={vehicle.make}
                       vehicleModel={vehicle.model}
-                       onZoneRemove={(zoneId) => setSelectedZones(selectedZones.filter(z => z.id !== zoneId))}
+                      vehicleCategory={vehicle.vehicle_type}
+                      onZoneRemove={(zoneId) => setSelectedZones(selectedZones.filter(z => z.id !== zoneId))}
                     />
                   ) : (
                     <VehicleConfigurator

@@ -8,14 +8,15 @@
    Bike,
    Truck,
    Eye,
-   Trash2,
-   Loader2,
-   ArrowLeft,
-   Grid,
-   List,
-   Shield,
-   Calendar,
- } from "lucide-react";
+  Trash2,
+  Loader2,
+  ArrowLeft,
+  Grid,
+  List,
+  Shield,
+  Calendar,
+  Edit,
+} from "lucide-react";
  import { supabase } from "@/integrations/supabase/client";
  import { useToast } from "@/hooks/use-toast";
  import { Button } from "@/components/ui/button";
@@ -33,27 +34,29 @@
  import { Model3DPreview } from "@/components/admin/Model3DPreview";
  import { useNavigate } from "react-router-dom";
  
- interface CarModel3D {
-   id: string;
-   make: string;
-   model: string;
-   year: number | null;
-   model_url: string;
-   thumbnail_url: string | null;
-   default_color: string | null;
-   is_active: boolean;
-   created_at: string;
-   vehicle_category: string;
- }
- 
- const VEHICLE_CATEGORIES = [
-   { value: "all", label: "All Categories", icon: Car },
-   { value: "car", label: "Car", icon: Car },
-   { value: "suv", label: "SUV", icon: Truck },
-   { value: "bike", label: "Bike", icon: Bike },
-   { value: "truck", label: "Truck", icon: Truck },
-   { value: "van", label: "Van", icon: Truck },
- ];
+interface CarModel3D {
+  id: string;
+  make: string;
+  model: string;
+  year: number | null;
+  model_url: string;
+  thumbnail_url: string | null;
+  default_color: string | null;
+  is_active: boolean;
+  created_at: string;
+  vehicle_category: string;
+}
+
+const VEHICLE_CATEGORIES = [
+  { value: "all", label: "All Categories", icon: Car },
+  { value: "car", label: "Car", icon: Car },
+  { value: "suv", label: "SUV", icon: Truck },
+  { value: "bike", label: "Bike", icon: Bike },
+  { value: "truck", label: "Truck", icon: Truck },
+  { value: "van", label: "Van", icon: Truck },
+];
+
+const EDIT_CATEGORIES = VEHICLE_CATEGORIES.filter(c => c.value !== "all");
  
  export default function AdminModelsPage() {
    const navigate = useNavigate();
@@ -90,37 +93,60 @@
          title: "Error",
          description: "Failed to load 3D models",
        });
-     } finally {
-       setLoading(false);
-     }
-   };
- 
-   const handleDelete = async (model: CarModel3D) => {
-     if (!confirm(`Delete ${model.make} ${model.model}?`)) return;
- 
-     try {
-       const fileName = model.model_url.split("/").pop();
-       if (fileName) {
-         await supabase.storage.from("car-models").remove([fileName]);
-       }
- 
-       const { error } = await supabase
-         .from("car_models_3d")
-         .delete()
-         .eq("id", model.id);
- 
-       if (error) throw error;
- 
-       toast({ title: "Deleted", description: "Model removed successfully" });
-       fetchModels();
-     } catch (error: any) {
-       toast({
-         variant: "destructive",
-         title: "Delete Failed",
-         description: error.message,
-       });
-     }
-   };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateCategory = async (model: CarModel3D, newCategory: string) => {
+    try {
+      const { error } = await supabase
+        .from("car_models_3d")
+        .update({ vehicle_category: newCategory })
+        .eq("id", model.id);
+
+      if (error) throw error;
+
+      setModels(models.map(m => 
+        m.id === model.id ? { ...m, vehicle_category: newCategory } : m
+      ));
+
+      toast({ title: "Updated", description: `Category changed to ${newCategory}` });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message,
+      });
+    }
+  };
+
+  const handleDelete = async (model: CarModel3D) => {
+    if (!confirm(`Delete ${model.make} ${model.model}?`)) return;
+
+    try {
+      const fileName = model.model_url.split("/").pop();
+      if (fileName) {
+        await supabase.storage.from("car-models").remove([fileName]);
+      }
+
+      const { error } = await supabase
+        .from("car_models_3d")
+        .delete()
+        .eq("id", model.id);
+
+      if (error) throw error;
+
+      toast({ title: "Deleted", description: "Model removed successfully" });
+      fetchModels();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Delete Failed",
+        description: error.message,
+      });
+    }
+  };
  
    const filteredModels = models.filter((model) => {
      const matchesSearch =
@@ -290,19 +316,34 @@
  
                        {/* Info */}
                        <div className="space-y-2">
-                         <div className="flex items-start justify-between">
-                           <div>
-                             <p className="font-semibold">
-                               {model.make} {model.model}
-                             </p>
-                             <p className="text-sm text-muted-foreground">
-                               {model.year || "All years"}
-                             </p>
-                           </div>
-                           <Badge variant="outline" className="text-xs capitalize">
-                             {model.vehicle_category}
-                           </Badge>
-                         </div>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-semibold">
+                                {model.make} {model.model}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {model.year || "All years"}
+                              </p>
+                            </div>
+                            <Select
+                              value={model.vehicle_category}
+                              onValueChange={(val) => handleUpdateCategory(model, val)}
+                            >
+                              <SelectTrigger className="w-24 h-7 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {EDIT_CATEGORIES.map((cat) => (
+                                  <SelectItem key={cat.value} value={cat.value}>
+                                    <div className="flex items-center gap-1.5">
+                                      <cat.icon className="h-3 w-3" />
+                                      {cat.label}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
  
                          <div className="flex items-center justify-between text-xs text-muted-foreground">
                            <div className="flex items-center gap-1">
@@ -360,10 +401,25 @@
                            {model.year || "All years"} •{" "}
                            {format(new Date(model.created_at), "MMM d, yyyy")}
                          </p>
-                       </div>
-                       <Badge variant="outline" className="capitalize shrink-0">
-                         {model.vehicle_category}
-                       </Badge>
+                        </div>
+                        <Select
+                          value={model.vehicle_category}
+                          onValueChange={(val) => handleUpdateCategory(model, val)}
+                        >
+                          <SelectTrigger className="w-28 shrink-0">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EDIT_CATEGORIES.map((cat) => (
+                              <SelectItem key={cat.value} value={cat.value}>
+                                <div className="flex items-center gap-1.5">
+                                  <cat.icon className="h-3 w-3" />
+                                  {cat.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                        <div className="flex gap-1 shrink-0">
                          <Button
                            variant="outline"
