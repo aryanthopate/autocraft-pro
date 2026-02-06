@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Shield, Loader2 } from "lucide-react";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
+import { useAuth } from "@/hooks/useAuth";
 const loginSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
@@ -17,6 +17,7 @@ const loginSchema = z.object({
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAdmin, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,6 +25,13 @@ export default function AdminLoginPage() {
     password: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Redirect if already logged in as admin
+  useEffect(() => {
+    if (!loading && user && isAdmin) {
+      navigate("/admin");
+    }
+  }, [user, isAdmin, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

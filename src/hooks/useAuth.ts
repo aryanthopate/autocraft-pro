@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,44 +31,20 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [studio, setStudio] = useState<Studio | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        // Defer profile fetch with setTimeout to avoid deadlock
-        if (newSession?.user) {
-          setTimeout(() => {
-            fetchProfile(newSession.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setStudio(null);
-          setLoading(false);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
-      
-      if (existingSession?.user) {
-        fetchProfile(existingSession.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+  const checkAdminRole = useCallback(async (userId: string) => {
+    try {
+      const { data: adminId } = await supabase
+        .rpc("check_is_admin", { p_user_id: userId });
+      return !!adminId;
+    } catch {
+      return false;
+    }
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
@@ -78,8 +54,7 @@ export function useAuth() {
 
       if (profileError) {
         console.error("Error fetching profile:", profileError);
-        setLoading(false);
-        return;
+        return null;
       }
 
       if (profileData) {
@@ -97,13 +72,72 @@ export function useAuth() {
             setStudio(studioData as unknown as Studio);
           }
         }
+        return profileData;
       }
+      return null;
     } catch (error) {
       console.error("Error in fetchProfile:", error);
-    } finally {
-      setLoading(false);
+      return null;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    // Listener for ONGOING auth changes (does NOT control isLoading)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        if (!isMounted) return;
+        
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        // Fire and forget - don't await, don't set loading
+        if (newSession?.user) {
+          setTimeout(() => {
+            if (!isMounted) return;
+            checkAdminRole(newSession.user.id).then(admin => {
+              if (isMounted) setIsAdmin(admin);
+            });
+            fetchProfile(newSession.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+          setStudio(null);
+          setIsAdmin(false);
+        }
+      }
+    );
+
+    // INITIAL load (controls isLoading)
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        setSession(existingSession);
+        setUser(existingSession?.user ?? null);
+
+        // Fetch role BEFORE setting loading false
+        if (existingSession?.user) {
+          const [adminStatus] = await Promise.all([
+            checkAdminRole(existingSession.user.id),
+            fetchProfile(existingSession.user.id),
+          ]);
+          if (isMounted) setIsAdmin(adminStatus);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [checkAdminRole, fetchProfile]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -111,6 +145,7 @@ export function useAuth() {
     setSession(null);
     setProfile(null);
     setStudio(null);
+    setIsAdmin(false);
   };
 
   const isOwner = profile?.role === "owner";
@@ -120,7 +155,10 @@ export function useAuth() {
   const isPending = profile?.status === "pending";
 
   // Helper to get dashboard route based on role
-  const getDashboardRoute = () => {
+  const getDashboardRoute = useCallback(() => {
+    // Admins go to admin panel
+    if (isAdmin) return "/admin";
+    
     if (!profile) return "/dashboard";
     switch (profile.role) {
       case "owner":
@@ -132,7 +170,7 @@ export function useAuth() {
       default:
         return "/dashboard";
     }
-  };
+  }, [isAdmin, profile]);
 
   return {
     user,
@@ -140,6 +178,7 @@ export function useAuth() {
     profile,
     studio,
     loading,
+    isAdmin,
     signOut,
     isOwner,
     isStaff,

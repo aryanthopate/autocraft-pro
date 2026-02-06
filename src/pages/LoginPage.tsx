@@ -27,10 +27,26 @@ export default function LoginPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Redirect if already logged in
+  // Redirect if already logged in (handle both regular users and admins)
   useEffect(() => {
-    if (!loading && user && profile) {
-      navigate(getDashboardRoute());
+    if (!loading && user) {
+      // Check if user is an admin - redirect to admin panel
+      const checkAndRedirect = async () => {
+        const { data: adminId } = await supabase
+          .rpc("check_is_admin", { p_user_id: user.id });
+        
+        if (adminId) {
+          navigate("/admin");
+          return;
+        }
+        
+        // Regular user - needs profile
+        if (profile) {
+          navigate(getDashboardRoute());
+        }
+      };
+      
+      checkAndRedirect();
     }
   }, [user, profile, loading, navigate, getDashboardRoute]);
 
