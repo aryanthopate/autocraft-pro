@@ -47,6 +47,7 @@ interface VehicleData {
   model: string;
   year: string;
   color: string;
+  colorHex: string;
   registration_number: string;
   vehicle_type: VehicleType;
 }
@@ -123,6 +124,7 @@ export default function NewJobPage() {
     model: "",
     year: "",
     color: "",
+    colorHex: "",
     registration_number: "",
     vehicle_type: "sedan",
   });
@@ -193,6 +195,7 @@ export default function NewJobPage() {
       model: v.model,
       year: v.year?.toString() || "",
       color: v.color || "",
+      colorHex: getCarColorHex(v.color),
       registration_number: v.registration_number || "",
       vehicle_type: (v.vehicle_type as VehicleType) || "sedan",
     });
@@ -534,8 +537,16 @@ export default function NewJobPage() {
           {currentStep === "services" && (
             <div className="space-y-6">
               {/* 3D Mode Toggle */}
-              <div className="flex items-center justify-end gap-2">
-                <span className="text-sm text-muted-foreground">View Mode:</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-4 h-4 rounded-full border-2 border-border"
+                    style={{ backgroundColor: vehicle.colorHex || getCarColorHex(vehicle.color) }}
+                  />
+                  <span className="text-sm font-medium">
+                    {vehicle.make} {vehicle.model}
+                  </span>
+                </div>
                 <div className="flex bg-muted rounded-lg p-1">
                   <button
                     onClick={() => setUse3DViewer(true)}
@@ -558,36 +569,54 @@ export default function NewJobPage() {
                 </div>
               </div>
 
-              <Card className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-racing/10 to-primary/10">
+              <Card className="overflow-hidden border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-racing/5 via-primary/5 to-racing/5 border-b">
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-racing" />
                     {use3DViewer ? "Premium 3D Configurator" : "Configure Services"}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
                     {use3DViewer 
-                      ? `${vehicle.make} ${vehicle.model} - ${vehicle.color || "Orange"} • Rotate and click hotspots`
-                      : "Rotate the vehicle and tap on zones to add services"
+                      ? "Rotate the model and click on hotspots to add services. Use the color picker to change vehicle color."
+                      : "Tap on vehicle zones to add services"
                     }
                   </p>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-0">
                   {use3DViewer ? (
                     <Car3DViewer
-                      carColor={getCarColorHex(vehicle.color)}
+                      carColor={vehicle.colorHex || getCarColorHex(vehicle.color)}
                       selectedZones={selectedZones}
                       onHotspotClick={(hotspot) => setActiveHotspot(hotspot)}
                       vehicleMake={vehicle.make}
                       vehicleModel={vehicle.model}
                       vehicleCategory={vehicle.vehicle_type}
                       onZoneRemove={(zoneId) => setSelectedZones(selectedZones.filter(z => z.id !== zoneId))}
+                      onColorChange={(hex) => {
+                        // Find color name from hex
+                        const colorMatch = Object.entries({
+                          "white": "#ffffff", "pearl white": "#f5f5f5", "black": "#1a1a1a",
+                          "silver": "#c0c0c0", "grey": "#808080", "red": "#dc2626",
+                          "blue": "#2563eb", "navy": "#1e3a5f", "green": "#16a34a",
+                          "orange": "#FF6600", "yellow": "#eab308", "brown": "#78350f",
+                          "beige": "#d4c4a8", "maroon": "#7f1d1d", "gold": "#b8860b",
+                          "champagne": "#f7e7ce",
+                        }).find(([_, h]) => h.toLowerCase() === hex.toLowerCase());
+                        setVehicle(prev => ({ 
+                          ...prev, 
+                          color: colorMatch ? colorMatch[0] : prev.color,
+                          colorHex: hex 
+                        }));
+                      }}
                     />
                   ) : (
-                    <VehicleConfigurator
-                      vehicleType={vehicle.vehicle_type}
-                      selectedZones={selectedZones}
-                      onZonesChange={setSelectedZones}
-                    />
+                    <div className="p-6">
+                      <VehicleConfigurator
+                        vehicleType={vehicle.vehicle_type}
+                        selectedZones={selectedZones}
+                        onZonesChange={setSelectedZones}
+                      />
+                    </div>
                   )}
                 </CardContent>
               </Card>

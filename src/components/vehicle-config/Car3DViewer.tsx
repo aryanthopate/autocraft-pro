@@ -1,13 +1,19 @@
-import { Suspense, useRef, useState, useEffect } from "react";
+import { Suspense, useRef, useState, useEffect, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows, useGLTF, Html, Center } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
- import { Maximize2, Loader2, X } from "lucide-react";
+import { Maximize2, Loader2, X, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { VEHICLE_COLORS } from "@/data/vehicleData";
 
 interface Hotspot3D {
   id: string;
@@ -32,6 +38,7 @@ interface Car3DViewerProps {
   vehicleModel?: string;
   vehicleCategory?: string;
   onZoneRemove?: (zoneId: string) => void;
+  onColorChange?: (color: string) => void;
 }
 
 // CAR/SUV/TRUCK Hotspot definitions using relative positions (0-1 range that scales with model)
@@ -392,14 +399,15 @@ function LoadingFallback() {
 }
 
 export function Car3DViewer({ 
-  carColor = "#FF6600", 
+  carColor, 
   selectedZones, 
   onHotspotClick,
   readOnly = false,
   vehicleMake,
   vehicleModel,
   vehicleCategory = "car",
-  onZoneRemove
+  onZoneRemove,
+  onColorChange
 }: Car3DViewerProps) {
   const controlsRef = useRef<any>(null);
   const [modelUrl, setModelUrl] = useState<string | null>(null);
@@ -411,12 +419,21 @@ export function Car3DViewer({
   } | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
   const [modelBounds, setModelBounds] = useState<{ width: number; height: number; depth: number } | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(carColor || null);
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
 
   // Get the effective category from model info or prop
   const effectiveCategory = modelInfo?.vehicle_category || vehicleCategory || "car";
 
   // Compute hotspots based on model bounds AND category
   const hotspots = computeHotspots(modelBounds, effectiveCategory);
+
+  // Handle color change from user selection
+  const handleColorSelect = useCallback((hex: string) => {
+    setSelectedColor(hex);
+    onColorChange?.(hex);
+    setColorPickerOpen(false);
+  }, [onColorChange]);
 
   // Fetch the 3D model URL based on make/model
   useEffect(() => {
@@ -488,15 +505,18 @@ export function Car3DViewer({
 
   const totalPrice = selectedZones.reduce((sum, z) => sum + z.price, 0);
   const displayName = modelInfo ? `${modelInfo.make} ${modelInfo.model}` : "3D Vehicle";
-   // Use the model's default color if no user color is set, otherwise use the passed carColor
-   const effectiveColor = carColor || modelInfo?.default_color || "#FF6600";
+  // Use user-selected color first, then passed carColor, then model's default
+  const effectiveColor = selectedColor || carColor || modelInfo?.default_color || "#FF6600";
+  
+  // Find the color name from VEHICLE_COLORS for display
+  const colorName = VEHICLE_COLORS.find(c => c.hex.toLowerCase() === effectiveColor?.toLowerCase())?.name || "Custom";
 
   return (
     <div className="relative">
       {/* 3D Canvas */}
-      <div className="relative h-[450px] md:h-[550px] rounded-2xl overflow-hidden bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border border-border">
+      <div className="relative h-[500px] md:h-[600px] rounded-2xl overflow-hidden bg-gradient-to-b from-background via-muted/30 to-background border border-border shadow-xl">
         {/* Ambient lighting effects */}
-        <div className="absolute inset-0 bg-gradient-radial from-racing/10 via-transparent to-transparent pointer-events-none z-10" />
+        <div className="absolute inset-0 bg-gradient-radial from-racing/5 via-transparent to-transparent pointer-events-none z-10" />
         
         <Canvas 
           shadows 
@@ -574,16 +594,60 @@ export function Car3DViewer({
           </Suspense>
         </Canvas>
         
-        {/* Control Buttons */}
+        {/* Control Buttons & Color Picker */}
         <div className="absolute bottom-4 left-4 flex gap-2 z-20">
           <Button
             size="sm"
             variant="outline"
             onClick={handleReset}
-            className="backdrop-blur bg-card/80"
+            className="backdrop-blur bg-card/80 hover:bg-card"
           >
             <Maximize2 className="h-4 w-4" />
           </Button>
+          
+          {/* Color Picker */}
+          {!readOnly && (
+            <Popover open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="backdrop-blur bg-card/80 hover:bg-card gap-2"
+                >
+                  <div 
+                    className="h-4 w-4 rounded-full border border-border"
+                    style={{ backgroundColor: effectiveColor }}
+                  />
+                  <Palette className="h-4 w-4" />
+                  <span className="hidden sm:inline text-xs">{colorName}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-3" align="start">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Select Vehicle Color</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {VEHICLE_COLORS.map((color) => (
+                      <button
+                        key={color.hex}
+                        title={color.name}
+                        onClick={() => handleColorSelect(color.hex)}
+                        className={cn(
+                          "w-9 h-9 rounded-lg border-2 transition-all hover:scale-110",
+                          effectiveColor?.toLowerCase() === color.hex.toLowerCase()
+                            ? "border-racing ring-2 ring-racing/30"
+                            : "border-border hover:border-muted-foreground"
+                        )}
+                        style={{ backgroundColor: color.hex }}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Selected: {colorName}
+                  </p>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
         
         {/* Instructions */}
@@ -595,14 +659,17 @@ export function Car3DViewer({
           </div>
         </div>
         
-        {/* Car Info Badge - Shows actual model name */}
+        {/* Car Info Badge - Shows actual model name and color */}
         <div className="absolute top-4 right-4 z-20">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/80 backdrop-blur border border-border">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card/90 backdrop-blur border border-border shadow-lg">
             <div 
-              className="h-4 w-4 rounded-full border-2 border-white/20"
-               style={{ backgroundColor: effectiveColor }}
+              className="h-5 w-5 rounded-full border-2 border-border shadow-sm"
+              style={{ backgroundColor: effectiveColor }}
             />
-            <span className="text-xs font-medium">{displayName}</span>
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold">{displayName}</span>
+              <span className="text-[10px] text-muted-foreground">{colorName}</span>
+            </div>
           </div>
         </div>
       </div>
