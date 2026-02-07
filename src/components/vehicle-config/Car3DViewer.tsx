@@ -165,14 +165,51 @@ function GLBCarModel({
       });
     }
 
-    // Apply color to the model's materials
+    // Apply color ONLY to body/paint materials, not tires, glass, etc.
     scene.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach((mat) => {
           if (mat instanceof THREE.MeshStandardMaterial) {
-            mat.color.set(color);
-            mat.needsUpdate = true;
+            const matName = (mat.name || '').toLowerCase();
+            const meshName = (child.name || '').toLowerCase();
+            
+            // Skip parts that should NOT be colored (tires, glass, chrome, lights, etc.)
+            const skipParts = [
+              'tire', 'tyre', 'wheel', 'rim',
+              'glass', 'window', 'windshield', 'windscreen',
+              'chrome', 'mirror',
+              'light', 'headlight', 'taillight', 'lamp',
+              'rubber', 'plastic_black', 'black_plastic',
+              'interior', 'seat', 'dashboard', 'steering',
+              'grille', 'grill', 'exhaust', 'brake',
+            ];
+            
+            const shouldSkip = skipParts.some(part => 
+              matName.includes(part) || meshName.includes(part)
+            );
+            
+            if (shouldSkip) {
+              // Keep original color for these parts
+              return;
+            }
+            
+            // Apply color to body/paint/exterior parts
+            const bodyParts = [
+              'body', 'paint', 'car', 'exterior', 'panel',
+              'hood', 'bonnet', 'fender', 'door', 'trunk', 'boot',
+              'bumper', 'roof', 'quarter', 'side', 'metal',
+              'frame', 'cowl', 'fairing', 'tank', 'fuel',
+            ];
+            
+            const isBodyPart = bodyParts.some(part => 
+              matName.includes(part) || meshName.includes(part)
+            ) || matName === '' || matName === 'material';
+            
+            if (isBodyPart) {
+              mat.color.set(color);
+              mat.needsUpdate = true;
+            }
           }
         });
       }
