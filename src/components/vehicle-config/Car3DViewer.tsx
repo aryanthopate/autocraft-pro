@@ -128,61 +128,126 @@ function computeHotspots(
 }
 
 // GLB Model Component that loads from URL and auto-scales
+// Mimics admin preview behavior - only colors body parts, keeps original for everything else
 function GLBCarModel({ 
   modelUrl, 
-  color = "#FF6600",
+  color,
   onBoundsCalculated 
 }: { 
   modelUrl: string; 
-  color: string;
+  color: string | null; // null = keep original colors
   onBoundsCalculated?: (bounds: { width: number; height: number; depth: number }) => void;
 }) {
   const { scene } = useGLTF(modelUrl);
   const modelRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const [modelScale, setModelScale] = useState(1);
+  const originalMaterialsRef = useRef<Map<THREE.Mesh, THREE.Material | THREE.Material[]>>(new Map());
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
-    // Clone the scene to avoid modifying the cached version
-    const clonedScene = scene.clone();
+    if (!scene) return;
     
-    // Calculate bounding box to auto-scale the model
-    const box = new THREE.Box3().setFromObject(clonedScene);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    
-    // Target size: model should fit within ~4 units
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const targetSize = 4;
-    const scale = targetSize / maxDim;
-    setModelScale(scale);
-    
-    // Report bounds for hotspot positioning
-    if (onBoundsCalculated) {
-      onBoundsCalculated({
-        width: size.x * scale,
-        height: size.y * scale,
-        depth: size.z * scale
+    try {
+      // Clone the scene to avoid modifying the cached version
+      const clonedScene = scene.clone(true);
+      
+      // Calculate bounding box to auto-scale the model
+      const box = new THREE.Box3().setFromObject(clonedScene);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      
+      // Target size: model should fit within ~4 units
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const targetSize = 4;
+      const scale = maxDim > 0 ? targetSize / maxDim : 1;
+      setModelScale(scale);
+      
+      // Apply scale
+      clonedScene.scale.setScalar(scale);
+      
+      // Center the model
+      clonedScene.position.set(
+        -center.x * scale,
+        -center.y * scale,
+        -center.z * scale
+      );
+      
+      // Report bounds for hotspot positioning
+      if (onBoundsCalculated) {
+        onBoundsCalculated({
+          width: size.x * scale,
+          height: size.y * scale,
+          depth: size.z * scale
+        });
+      }
+      
+      // Store original materials and prepare for color application
+      clonedScene.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material) {
+          // Clone and store original materials
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          const clonedMaterials = materials.map(mat => mat.clone());
+          
+          if (Array.isArray(child.material)) {
+            child.material = clonedMaterials;
+          } else {
+            child.material = clonedMaterials[0];
+          }
+          
+          originalMaterialsRef.current.set(child, Array.isArray(child.material) ? [...clonedMaterials] : clonedMaterials[0]);
+          
+          // Ensure materials render properly with good metalness/roughness
+          clonedMaterials.forEach((mat) => {
+            if (mat instanceof THREE.MeshStandardMaterial) {
+              mat.metalness = Math.min(mat.metalness, 0.8);
+              mat.roughness = Math.max(mat.roughness, 0.2);
+              mat.needsUpdate = true;
+            }
+          });
+        }
       });
+      
+      // Update the group with cloned scene
+      if (groupRef.current) {
+        // Clear existing children
+        while (groupRef.current.children.length > 0) {
+          groupRef.current.remove(groupRef.current.children[0]);
+        }
+        groupRef.current.add(clonedScene);
+      }
+      
+      hasInitializedRef.current = true;
+    } catch (err) {
+      console.error("Error processing model:", err);
     }
+  }, [scene, onBoundsCalculated]);
 
-    // Apply color ONLY to body/paint materials, not tires, glass, etc.
-    scene.traverse((child) => {
+  // Separate effect to handle color changes ONLY when user selects a color
+  useEffect(() => {
+    if (!hasInitializedRef.current || !groupRef.current || !color) return;
+    
+    // Apply color ONLY to body/paint parts, exactly like admin preview
+    groupRef.current.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
+        
         materials.forEach((mat) => {
           if (mat instanceof THREE.MeshStandardMaterial) {
             const matName = (mat.name || '').toLowerCase();
             const meshName = (child.name || '').toLowerCase();
             
-            // Skip parts that should NOT be colored (tires, glass, chrome, lights, etc.)
+            // Skip parts that should NOT be colored - same as admin preview
             const skipParts = [
               'tire', 'tyre', 'wheel', 'rim',
               'glass', 'window', 'windshield', 'windscreen',
               'chrome', 'mirror',
-              'light', 'headlight', 'taillight', 'lamp',
-              'rubber', 'plastic_black', 'black_plastic',
+              'light', 'headlight', 'taillight', 'lamp', 'led',
+              'rubber', 'plastic_black', 'black_plastic', 'black',
               'interior', 'seat', 'dashboard', 'steering',
-              'grille', 'grill', 'exhaust', 'brake',
+              'grille', 'grill', 'exhaust', 'brake', 'caliper',
+              'badge', 'emblem', 'logo', 'decal',
+              'suspension', 'spring', 'shock',
             ];
             
             const shouldSkip = skipParts.some(part => 
@@ -190,8 +255,7 @@ function GLBCarModel({
             );
             
             if (shouldSkip) {
-              // Keep original color for these parts
-              return;
+              return; // Keep original color
             }
             
             // Apply color to body/paint/exterior parts
@@ -202,6 +266,7 @@ function GLBCarModel({
               'frame', 'cowl', 'fairing', 'tank', 'fuel',
             ];
             
+            // Apply color if it's a body part OR if it has no specific name (generic materials)
             const isBodyPart = bodyParts.some(part => 
               matName.includes(part) || meshName.includes(part)
             ) || matName === '' || matName === 'material';
@@ -214,7 +279,7 @@ function GLBCarModel({
         });
       }
     });
-  }, [scene, color, onBoundsCalculated]);
+  }, [color]);
 
   useFrame((state) => {
     if (modelRef.current) {
@@ -225,7 +290,7 @@ function GLBCarModel({
 
   return (
     <group ref={modelRef}>
-      <primitive object={scene} scale={modelScale} />
+      <group ref={groupRef} />
     </group>
   );
 }
@@ -456,7 +521,9 @@ export function Car3DViewer({
   } | null>(null);
   const [loadingModel, setLoadingModel] = useState(true);
   const [modelBounds, setModelBounds] = useState<{ width: number; height: number; depth: number } | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(carColor || null);
+  // IMPORTANT: Start with null - model loads with original colors
+  // Only apply color when user MANUALLY selects one
+  const [userSelectedColor, setUserSelectedColor] = useState<string | null>(null);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
 
   // Get the effective category from model info or prop
@@ -465,9 +532,9 @@ export function Car3DViewer({
   // Compute hotspots based on model bounds AND category
   const hotspots = computeHotspots(modelBounds, effectiveCategory);
 
-  // Handle color change from user selection
+  // Handle color change from user selection - only when user manually picks
   const handleColorSelect = useCallback((hex: string) => {
-    setSelectedColor(hex);
+    setUserSelectedColor(hex);
     onColorChange?.(hex);
     setColorPickerOpen(false);
   }, [onColorChange]);
@@ -542,11 +609,18 @@ export function Car3DViewer({
 
   const totalPrice = selectedZones.reduce((sum, z) => sum + z.price, 0);
   const displayName = modelInfo ? `${modelInfo.make} ${modelInfo.model}` : "3D Vehicle";
-  // Use user-selected color first, then passed carColor, then model's default
-  const effectiveColor = selectedColor || carColor || modelInfo?.default_color || "#FF6600";
   
-  // Find the color name from VEHICLE_COLORS for display
-  const colorName = VEHICLE_COLORS.find(c => c.hex.toLowerCase() === effectiveColor?.toLowerCase())?.name || "Custom";
+  // ONLY apply color when user manually selects - null means keep original model colors
+  // userSelectedColor takes priority, otherwise show original (null)
+  const effectiveColor = userSelectedColor;
+  
+  // For display: show "Original" if no color selected, otherwise find color name
+  const colorName = effectiveColor 
+    ? (VEHICLE_COLORS.find(c => c.hex.toLowerCase() === effectiveColor.toLowerCase())?.name || "Custom")
+    : "Original";
+  
+  // Display color for the badge - use selected or show a neutral indicator
+  const displayColor = effectiveColor || "#888888";
 
   return (
     <div className="relative">
@@ -561,23 +635,24 @@ export function Car3DViewer({
           gl={{ antialias: true, alpha: true }}
         >
           <Suspense fallback={<LoadingFallback />}>
-            {/* Lighting */}
-            <ambientLight intensity={0.4} />
+            {/* Lighting - improved to match admin preview */}
+            <ambientLight intensity={0.8} />
             <spotLight 
-              position={[10, 10, 5]} 
-              angle={0.3} 
+              position={[10, 10, 10]} 
+              angle={0.15} 
               penumbra={1} 
-              intensity={1} 
+              intensity={2} 
               castShadow 
               shadow-mapSize={[2048, 2048]}
             />
             <spotLight 
-              position={[-10, 10, -5]} 
-              angle={0.3} 
+              position={[-10, 10, -10]} 
+              angle={0.15} 
               penumbra={1} 
-              intensity={0.5}
+              intensity={1}
             />
-            <pointLight position={[0, 5, 0]} intensity={0.5} color="#ff6600" />
+            <directionalLight position={[0, 10, 5]} intensity={1} />
+            <pointLight position={[0, -5, 0]} intensity={0.3} />
             
             {/* Environment */}
             <Environment preset="city" />
@@ -587,11 +662,11 @@ export function Car3DViewer({
               {modelUrl ? (
                 <GLBCarModel 
                   modelUrl={modelUrl} 
-                   color={effectiveColor} 
+                  color={effectiveColor}
                   onBoundsCalculated={setModelBounds}
                 />
               ) : (
-                 <FallbackCarModel color={effectiveColor} />
+                 <FallbackCarModel color={effectiveColor || "#FF6600"} />
               )}
             </Center>
             
@@ -653,7 +728,7 @@ export function Car3DViewer({
                 >
                   <div 
                     className="h-4 w-4 rounded-full border border-border"
-                    style={{ backgroundColor: effectiveColor }}
+                    style={{ backgroundColor: displayColor }}
                   />
                   <Palette className="h-4 w-4" />
                   <span className="hidden sm:inline text-xs">{colorName}</span>
@@ -701,7 +776,7 @@ export function Car3DViewer({
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card/90 backdrop-blur border border-border shadow-lg">
             <div 
               className="h-5 w-5 rounded-full border-2 border-border shadow-sm"
-              style={{ backgroundColor: effectiveColor }}
+              style={{ backgroundColor: displayColor }}
             />
             <div className="flex flex-col">
               <span className="text-xs font-semibold">{displayName}</span>
