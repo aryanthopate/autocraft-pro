@@ -11,10 +11,12 @@ import {
   Play,
   Send,
   Loader2,
-  ChevronRight,
   Zap,
   Timer,
   Target,
+  Camera,
+  FileText,
+  TrendingUp,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,13 +28,16 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { VehicleZoneSelector } from "@/components/mechanic/VehicleZoneSelector";
+import { EnhancedZoneSelector } from "@/components/mechanic/EnhancedZoneSelector";
+import { Job3DViewer } from "@/components/mechanic/Job3DViewer";
+import { WorkLogsPanel } from "@/components/mechanic/WorkLogsPanel";
 import { JobCard } from "@/components/mechanic/JobCard";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +47,13 @@ interface Job {
   scheduled_date: string | null;
   notes: string | null;
   customer?: { name: string; phone: string };
-  car?: { make: string; model: string; year: number | null; color: string | null; vehicle_type?: string };
+  car?: { 
+    make: string; 
+    model: string; 
+    year: number | null; 
+    color: string | null; 
+    vehicle_type?: string 
+  };
 }
 
 interface JobZone {
@@ -52,6 +63,14 @@ interface JobZone {
   services: any;
   completed: boolean;
   notes: string | null;
+}
+
+interface CarModel3D {
+  id: string;
+  make: string;
+  model: string;
+  model_url: string;
+  default_color: string | null;
 }
 
 export default function MechanicDashboardPage() {
@@ -64,6 +83,8 @@ export default function MechanicDashboardPage() {
   const [updating, setUpdating] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [submissionNotes, setSubmissionNotes] = useState("");
+  const [carModel3D, setCarModel3D] = useState<CarModel3D | null>(null);
+  const [activeTab, setActiveTab] = useState("zones");
 
   useEffect(() => {
     if (studio?.id && profile?.id) {
@@ -98,9 +119,11 @@ export default function MechanicDashboardPage() {
       if (inProgress) {
         setSelectedJob(inProgress);
         fetchZones(inProgress.id);
+        fetchCarModel3D(inProgress.car?.make, inProgress.car?.model);
       } else if (jobsWithRelations.length > 0) {
         setSelectedJob(jobsWithRelations[0]);
         fetchZones(jobsWithRelations[0].id);
+        fetchCarModel3D(jobsWithRelations[0].car?.make, jobsWithRelations[0].car?.model);
       }
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -121,6 +144,24 @@ export default function MechanicDashboardPage() {
     }
   };
 
+  const fetchCarModel3D = async (make?: string, model?: string) => {
+    if (!make || !model) {
+      setCarModel3D(null);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("car_models_3d")
+      .select("*")
+      .eq("is_active", true)
+      .ilike("make", make)
+      .ilike("model", `%${model}%`)
+      .limit(1)
+      .maybeSingle();
+
+    setCarModel3D(data as CarModel3D | null);
+  };
+
   const handleStartJob = async (jobId: string) => {
     setUpdating(true);
     try {
@@ -131,7 +172,16 @@ export default function MechanicDashboardPage() {
 
       if (error) throw error;
 
-      toast({ title: "Job started", description: "Let's get to work!" });
+      // Log job start
+      if (profile?.id) {
+        await supabase.from("work_logs").insert({
+          job_id: jobId,
+          performed_by: profile.id,
+          action: "job_started",
+        });
+      }
+
+      toast({ title: "Job started!", description: "Let's get to work!" });
       fetchJobs();
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "Could not start job." });
@@ -160,7 +210,7 @@ export default function MechanicDashboardPage() {
         });
       }
 
-      toast({ title: "Zone completed!", description: "Great work!" });
+      toast({ title: "Zone completed!", description: "Great work! Keep going!" });
       if (selectedJob) fetchZones(selectedJob.id);
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "Could not update zone." });
@@ -190,6 +240,14 @@ export default function MechanicDashboardPage() {
         });
 
       if (subError) throw subError;
+
+      // Log submission
+      await supabase.from("work_logs").insert({
+        job_id: selectedJob.id,
+        performed_by: profile.id,
+        action: "job_submitted",
+        notes: submissionNotes || null,
+      });
 
       toast({
         title: "Submitted for review",
@@ -232,25 +290,39 @@ export default function MechanicDashboardPage() {
           className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card via-card to-racing/5 border border-border p-6"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-racing/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="relative flex items-center gap-4">
-            <motion.div
-              className="h-14 w-14 rounded-2xl bg-gradient-to-br from-racing to-primary flex items-center justify-center shadow-lg shadow-racing/25"
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            >
-              <Wrench className="h-7 w-7 text-white" />
-            </motion.div>
-            <div>
-              <h1 className="font-display text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                Mechanic Workbench
-              </h1>
-              <p className="text-muted-foreground">
-                {activeJobs.length > 0
-                  ? `${activeJobs.length} active job${activeJobs.length > 1 ? "s" : ""} in progress`
-                  : "Ready for your next assignment"}
-              </p>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/10 blur-2xl rounded-full translate-y-1/2 -translate-x-1/2" />
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <motion.div
+                className="h-14 w-14 rounded-2xl bg-gradient-to-br from-racing to-primary flex items-center justify-center shadow-lg shadow-racing/25"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              >
+                <Wrench className="h-7 w-7 text-white" />
+              </motion.div>
+              <div>
+                <h1 className="font-display text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Mechanic Workbench
+                </h1>
+                <p className="text-muted-foreground">
+                  {activeJobs.length > 0
+                    ? `${activeJobs.length} active job${activeJobs.length > 1 ? "s" : ""} in progress`
+                    : "Ready for your next assignment"}
+                </p>
+              </div>
             </div>
+            {profile && (
+              <div className="hidden md:flex items-center gap-3 bg-background/50 backdrop-blur rounded-xl px-4 py-2 border">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-racing/20 to-primary/20 flex items-center justify-center">
+                  <User className="h-5 w-5 text-racing" />
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">{profile.full_name}</p>
+                  <p className="text-xs text-muted-foreground">Mechanic</p>
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -268,7 +340,7 @@ export default function MechanicDashboardPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
             >
-              <Card className="relative overflow-hidden group hover:border-primary/50 transition-colors">
+              <Card className="relative overflow-hidden group hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/5">
                 <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity", stat.bg)} />
                 <CardContent className="pt-6 relative">
                   <div className="flex items-center justify-between">
@@ -296,10 +368,13 @@ export default function MechanicDashboardPage() {
             className="lg:col-span-4"
           >
             <Card className="h-full">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 bg-gradient-to-r from-racing/5 to-transparent">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Car className="h-5 w-5 text-primary" />
+                  <Car className="h-5 w-5 text-racing" />
                   My Jobs
+                  <Badge variant="outline" className="ml-auto">
+                    {jobs.length}
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -319,6 +394,7 @@ export default function MechanicDashboardPage() {
                         onClick={() => {
                           setSelectedJob(job);
                           fetchZones(job.id);
+                          fetchCarModel3D(job.car?.make, job.car?.model);
                         }}
                       />
                     ))}
@@ -336,132 +412,207 @@ export default function MechanicDashboardPage() {
             className="lg:col-span-8"
           >
             {selectedJob ? (
-              <Card className="overflow-hidden">
-                {/* Job Header */}
-                <CardHeader className="bg-gradient-to-r from-racing/10 via-primary/5 to-transparent border-b">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-racing/20 to-primary/20 flex items-center justify-center">
-                        <Car className="h-8 w-8 text-racing" />
+              <div className="space-y-6">
+                {/* 3D Vehicle Viewer */}
+                <Card className="overflow-hidden">
+                  <Job3DViewer
+                    modelUrl={carModel3D?.model_url || null}
+                    carColor={selectedJob.car?.color || carModel3D?.default_color}
+                    vehicleInfo={selectedJob.car ? {
+                      make: selectedJob.car.make,
+                      model: selectedJob.car.model,
+                      year: selectedJob.car.year,
+                      vehicleType: selectedJob.car.vehicle_type
+                    } : undefined}
+                    completedZones={zones.filter(z => z.completed).map(z => 
+                      z.zone_name.toLowerCase().replace(/\s+/g, "_")
+                    )}
+                    totalZones={zones.length}
+                  />
+                </Card>
+
+                {/* Work Area Card */}
+                <Card className="overflow-hidden">
+                  {/* Job Header */}
+                  <CardHeader className="bg-gradient-to-r from-racing/10 via-primary/5 to-transparent border-b">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-racing/20 to-primary/20 flex items-center justify-center">
+                          <Car className="h-7 w-7 text-racing" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl">
+                            {selectedJob.car?.make} {selectedJob.car?.model}
+                            {selectedJob.car?.year && <span className="text-muted-foreground font-normal ml-2">({selectedJob.car.year})</span>}
+                          </CardTitle>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {selectedJob.customer?.name}
+                            </span>
+                            {selectedJob.car?.color && (
+                              <Badge variant="outline" className="text-xs">
+                                {selectedJob.car.color}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-2xl">
-                          {selectedJob.car?.make} {selectedJob.car?.model}
-                          {selectedJob.car?.year && <span className="text-muted-foreground font-normal ml-2">({selectedJob.car.year})</span>}
-                        </CardTitle>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {selectedJob.customer?.name}
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "text-sm px-3 py-1",
+                          selectedJob.status === "in_progress" && "bg-racing/15 text-racing border-racing/30",
+                          selectedJob.status === "pending" && "bg-amber-500/15 text-amber-500 border-amber-500/30",
+                          selectedJob.status === "scheduled" && "bg-blue-500/15 text-blue-500 border-blue-500/30",
+                          selectedJob.status === "awaiting_review" && "bg-purple-500/15 text-purple-500 border-purple-500/30"
+                        )}
+                      >
+                        {selectedJob.status.replace("_", " ")}
+                      </Badge>
+                    </div>
+
+                    {/* Progress Bar */}
+                    {zones.length > 0 && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-semibold text-racing">
+                            {completedZones}/{zones.length} zones
                           </span>
-                          {selectedJob.car?.color && (
-                            <Badge variant="outline" className="text-xs">
-                              {selectedJob.car.color}
-                            </Badge>
+                        </div>
+                        <div className="relative">
+                          <Progress value={progressPercent} className="h-3" />
+                          {progressPercent > 0 && (
+                            <motion.div
+                              className="absolute inset-y-0 left-0 flex items-center justify-end pr-2"
+                              style={{ width: `${progressPercent}%` }}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                            >
+                              <span className="text-[10px] font-bold text-white">
+                                {Math.round(progressPercent)}%
+                              </span>
+                            </motion.div>
                           )}
                         </div>
                       </div>
-                    </div>
-                    <Badge 
-                      variant="outline" 
-                      className={cn(
-                        "text-sm px-3 py-1",
-                        selectedJob.status === "in_progress" && "bg-racing/15 text-racing border-racing/30",
-                        selectedJob.status === "pending" && "bg-amber-500/15 text-amber-500 border-amber-500/30",
-                        selectedJob.status === "scheduled" && "bg-blue-500/15 text-blue-500 border-blue-500/30",
-                        selectedJob.status === "awaiting_review" && "bg-purple-500/15 text-purple-500 border-purple-500/30"
-                      )}
-                    >
-                      {selectedJob.status.replace("_", " ")}
-                    </Badge>
-                  </div>
+                    )}
+                  </CardHeader>
 
-                  {/* Progress Bar */}
-                  {zones.length > 0 && (
-                    <div className="mt-4">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-semibold text-racing">
-                          {completedZones}/{zones.length} zones
-                        </span>
-                      </div>
-                      <Progress value={progressPercent} className="h-2" />
-                    </div>
-                  )}
-                </CardHeader>
-
-                <CardContent className="p-0">
-                  {/* Start Button */}
-                  {(selectedJob.status === "pending" || selectedJob.status === "scheduled") && (
-                    <div className="p-8 text-center border-b bg-gradient-to-b from-transparent to-racing/5">
-                      <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring" }}
-                      >
-                        <Button
-                          size="lg"
-                          onClick={() => handleStartJob(selectedJob.id)}
-                          disabled={updating}
-                          className="gap-2 bg-gradient-to-r from-racing to-primary hover:from-racing/90 hover:to-primary/90 shadow-lg shadow-racing/25"
+                  <CardContent className="p-0">
+                    {/* Start Button */}
+                    {(selectedJob.status === "pending" || selectedJob.status === "scheduled") && (
+                      <div className="p-8 text-center border-b bg-gradient-to-b from-transparent to-racing/5">
+                        <motion.div
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ type: "spring" }}
                         >
-                          {updating ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
+                          <Button
+                            size="lg"
+                            onClick={() => handleStartJob(selectedJob.id)}
+                            disabled={updating}
+                            className="gap-2 bg-gradient-to-r from-racing to-primary hover:from-racing/90 hover:to-primary/90 shadow-lg shadow-racing/25"
+                          >
+                            {updating ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <Play className="h-5 w-5" />
+                            )}
+                            Start Working
+                          </Button>
+                        </motion.div>
+                      </div>
+                    )}
+
+                    {/* Tabs for In-Progress Jobs */}
+                    {selectedJob.status === "in_progress" && (
+                      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <TabsList className="w-full rounded-none border-b bg-transparent p-0">
+                          <TabsTrigger
+                            value="zones"
+                            className="flex-1 rounded-none py-3 data-[state=active]:border-b-2 data-[state=active]:border-racing data-[state=active]:text-racing"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Work Zones
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="activity"
+                            className="flex-1 rounded-none py-3 data-[state=active]:border-b-2 data-[state=active]:border-racing data-[state=active]:text-racing"
+                          >
+                            <TrendingUp className="h-4 w-4 mr-2" />
+                            Activity
+                          </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="zones" className="m-0">
+                          {zones.length > 0 ? (
+                            <EnhancedZoneSelector
+                              zones={zones}
+                              vehicleType={selectedJob.car?.vehicle_type || "sedan"}
+                              onCompleteZone={handleCompleteZone}
+                              disabled={updating}
+                              isWorking={selectedJob.status === "in_progress"}
+                            />
                           ) : (
-                            <Play className="h-5 w-5" />
+                            <div className="p-8 text-center text-muted-foreground">
+                              <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                              <p>No zones configured for this job</p>
+                            </div>
                           )}
-                          Start Working
+                        </TabsContent>
+
+                        <TabsContent value="activity" className="m-0 p-4">
+                          <WorkLogsPanel jobId={selectedJob.id} />
+                        </TabsContent>
+                      </Tabs>
+                    )}
+
+                    {/* Non-in-progress zone display */}
+                    {selectedJob.status !== "in_progress" && zones.length > 0 && (
+                      <EnhancedZoneSelector
+                        zones={zones}
+                        vehicleType={selectedJob.car?.vehicle_type || "sedan"}
+                        onCompleteZone={handleCompleteZone}
+                        disabled={true}
+                        isWorking={false}
+                      />
+                    )}
+
+                    {/* Submit Button */}
+                    {selectedJob.status === "in_progress" && zones.length > 0 && (
+                      <div className="p-6 bg-gradient-to-r from-muted/30 to-transparent border-t">
+                        <Button
+                          className="w-full gap-2 bg-gradient-to-r from-primary to-racing"
+                          size="lg"
+                          disabled={completedZones < zones.length}
+                          onClick={() => setSubmitDialogOpen(true)}
+                        >
+                          <Send className="h-5 w-5" />
+                          Submit for Review
                         </Button>
-                      </motion.div>
-                    </div>
-                  )}
+                        {completedZones < zones.length && (
+                          <p className="text-sm text-muted-foreground text-center mt-2">
+                            Complete all {zones.length - completedZones} remaining zone(s) to submit
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-                  {/* Zone Selector */}
-                  {zones.length > 0 && (
-                    <VehicleZoneSelector
-                      zones={zones}
-                      vehicleType={selectedJob.car?.vehicle_type || "sedan"}
-                      onCompleteZone={handleCompleteZone}
-                      disabled={selectedJob.status !== "in_progress" || updating}
-                    />
-                  )}
-
-                  {zones.length === 0 && selectedJob.status === "in_progress" && (
-                    <div className="p-8 text-center text-muted-foreground">
-                      <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>No zones configured for this job</p>
-                    </div>
-                  )}
-
-                  {/* Submit Button */}
-                  {selectedJob.status === "in_progress" && zones.length > 0 && (
-                    <div className="p-6 bg-muted/30 border-t">
-                      <Button
-                        className="w-full gap-2"
-                        size="lg"
-                        disabled={completedZones < zones.length}
-                        onClick={() => setSubmitDialogOpen(true)}
-                      >
-                        <Send className="h-5 w-5" />
-                        Submit for Review
-                      </Button>
-                      {completedZones < zones.length && (
-                        <p className="text-sm text-muted-foreground text-center mt-2">
-                          Complete all {zones.length - completedZones} remaining zone(s)
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Job Notes */}
-                  {selectedJob.notes && (
-                    <div className="p-4 bg-amber-500/5 border-t border-amber-500/20">
-                      <p className="text-sm font-medium text-amber-600 mb-1">Job Notes:</p>
-                      <p className="text-sm text-muted-foreground">{selectedJob.notes}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    {/* Job Notes */}
+                    {selectedJob.notes && (
+                      <div className="p-4 bg-amber-500/5 border-t border-amber-500/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="h-4 w-4 text-amber-600" />
+                          <p className="text-sm font-medium text-amber-600">Job Notes</p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{selectedJob.notes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             ) : (
               <Card>
                 <CardContent className="py-20 text-center">
@@ -484,11 +635,24 @@ export default function MechanicDashboardPage() {
 
       {/* Submit Dialog */}
       <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Submit Job for Review</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              Submit Job for Review
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="p-4 rounded-lg bg-muted/50 border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Completion Status</span>
+                <Badge className="bg-accent/80 text-accent-foreground">
+                  {completedZones}/{zones.length} zones
+                </Badge>
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+            </div>
+            
             <div className="space-y-2">
               <Label>Completion Notes (optional)</Label>
               <Textarea
@@ -496,8 +660,10 @@ export default function MechanicDashboardPage() {
                 value={submissionNotes}
                 onChange={(e) => setSubmissionNotes(e.target.value)}
                 rows={4}
+                className="resize-none"
               />
             </div>
+            
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -508,7 +674,7 @@ export default function MechanicDashboardPage() {
               </Button>
               <Button
                 onClick={handleSubmitForReview}
-                className="flex-1"
+                className="flex-1 bg-gradient-to-r from-primary to-racing"
                 disabled={updating}
               >
                 {updating ? (

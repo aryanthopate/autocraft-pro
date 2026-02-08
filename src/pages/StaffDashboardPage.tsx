@@ -11,6 +11,10 @@ import {
   Play,
   Send,
   Loader2,
+  Zap,
+  Target,
+  TrendingUp,
+  FileText,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,7 +33,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { VehicleSilhouette, VehicleType } from "@/components/vehicles/VehicleSilhouette";
+import { Job3DViewer } from "@/components/mechanic/Job3DViewer";
+import { EnhancedZoneSelector } from "@/components/mechanic/EnhancedZoneSelector";
+import { WorkLogsPanel } from "@/components/mechanic/WorkLogsPanel";
+import { cn } from "@/lib/utils";
 
 interface Job {
   id: string;
@@ -49,8 +56,16 @@ interface JobZone {
   notes: string | null;
 }
 
+interface CarModel3D {
+  id: string;
+  make: string;
+  model: string;
+  model_url: string;
+  default_color: string | null;
+}
+
 export default function StaffDashboardPage() {
-  const { profile, studio, isOwner } = useAuth();
+  const { profile, studio } = useAuth();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -58,8 +73,10 @@ export default function StaffDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [activeTab, setActiveTab] = useState("assigned");
+  const [workTab, setWorkTab] = useState("zones");
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [submissionNotes, setSubmissionNotes] = useState("");
+  const [carModel3D, setCarModel3D] = useState<CarModel3D | null>(null);
 
   useEffect(() => {
     if (studio?.id && profile?.id) {
@@ -73,7 +90,7 @@ export default function StaffDashboardPage() {
     try {
       const { data, error } = await supabase
         .from("jobs")
-        .select("*, customers(name, phone), cars(make, model, year, color)")
+        .select("*, customers(name, phone), cars(make, model, year, color, vehicle_type)")
         .eq("studio_id", studio.id)
         .eq("assigned_to", profile.id)
         .in("status", ["pending", "scheduled", "in_progress", "awaiting_review"])
@@ -94,9 +111,11 @@ export default function StaffDashboardPage() {
       if (inProgress) {
         setSelectedJob(inProgress);
         fetchZones(inProgress.id);
+        fetchCarModel3D(inProgress.car?.make, inProgress.car?.model);
       } else if (jobsWithRelations.length > 0) {
         setSelectedJob(jobsWithRelations[0]);
         fetchZones(jobsWithRelations[0].id);
+        fetchCarModel3D(jobsWithRelations[0].car?.make, jobsWithRelations[0].car?.model);
       }
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -117,6 +136,24 @@ export default function StaffDashboardPage() {
     }
   };
 
+  const fetchCarModel3D = async (make?: string, model?: string) => {
+    if (!make || !model) {
+      setCarModel3D(null);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("car_models_3d")
+      .select("*")
+      .eq("is_active", true)
+      .ilike("make", make)
+      .ilike("model", `%${model}%`)
+      .limit(1)
+      .maybeSingle();
+
+    setCarModel3D(data as CarModel3D | null);
+  };
+
   const handleStartJob = async (jobId: string) => {
     setUpdating(true);
     try {
@@ -126,6 +163,15 @@ export default function StaffDashboardPage() {
         .eq("id", jobId);
 
       if (error) throw error;
+
+      // Log job start
+      if (profile?.id) {
+        await supabase.from("work_logs").insert({
+          job_id: jobId,
+          performed_by: profile.id,
+          action: "job_started",
+        });
+      }
 
       toast({ title: "Job started", description: "You can now work on this job." });
       fetchJobs();
@@ -145,6 +191,16 @@ export default function StaffDashboardPage() {
         .eq("id", zoneId);
 
       if (error) throw error;
+
+      // Log the work
+      if (profile?.id && selectedJob?.id) {
+        await supabase.from("work_logs").insert({
+          job_id: selectedJob.id,
+          zone_id: zoneId,
+          performed_by: profile.id,
+          action: "zone_completed",
+        });
+      }
 
       toast({ title: "Zone completed!" });
       if (selectedJob) fetchZones(selectedJob.id);
@@ -178,6 +234,14 @@ export default function StaffDashboardPage() {
         });
 
       if (subError) throw subError;
+
+      // Log submission
+      await supabase.from("work_logs").insert({
+        job_id: selectedJob.id,
+        performed_by: profile.id,
+        action: "job_submitted",
+        notes: submissionNotes || null,
+      });
 
       toast({
         title: "Submitted for review",
@@ -228,34 +292,56 @@ export default function StaffDashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header with premium styling */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4"
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card via-card to-primary/5 border border-border p-6"
         >
-          <motion.div
-            className="h-12 w-1.5 bg-gradient-to-b from-racing to-primary rounded-full"
-            initial={{ scaleY: 0 }}
-            animate={{ scaleY: 1 }}
-          />
-          <div>
-            <h1 className="font-display text-3xl font-bold">My Jobs</h1>
-            <p className="text-muted-foreground">
-              {activeJobs.length > 0
-                ? `${activeJobs.length} job${activeJobs.length > 1 ? "s" : ""} in progress`
-                : "No active jobs"}
-            </p>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-racing/10 blur-2xl rounded-full translate-y-1/2 -translate-x-1/2" />
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <motion.div
+                className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-racing flex items-center justify-center shadow-lg shadow-primary/25"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              >
+                <ClipboardList className="h-7 w-7 text-white" />
+              </motion.div>
+              <div>
+                <h1 className="font-display text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Staff Dashboard
+                </h1>
+                <p className="text-muted-foreground">
+                  {activeJobs.length > 0
+                    ? `${activeJobs.length} job${activeJobs.length > 1 ? "s" : ""} in progress`
+                    : "No active jobs"}
+                </p>
+              </div>
+            </div>
+            {profile && (
+              <div className="hidden md:flex items-center gap-3 bg-background/50 backdrop-blur rounded-xl px-4 py-2 border">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-racing/20 flex items-center justify-center">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">{profile.full_name}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
 
         {/* Quick Stats */}
         <div className="grid gap-4 md:grid-cols-4">
           {[
-            { label: "Pending", value: pendingJobs.length, icon: Clock, color: "text-amber-500" },
-            { label: "In Progress", value: activeJobs.length, icon: Play, color: "text-racing" },
-            { label: "Awaiting Review", value: reviewJobs.length, icon: AlertCircle, color: "text-purple-500" },
-            { label: "Today's Schedule", value: jobs.filter(j => j.scheduled_date === new Date().toISOString().split("T")[0]).length, icon: Calendar, color: "text-blue-500" },
+            { label: "Pending", value: pendingJobs.length, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
+            { label: "In Progress", value: activeJobs.length, icon: Zap, color: "text-racing", bg: "bg-racing/10" },
+            { label: "Awaiting Review", value: reviewJobs.length, icon: Target, color: "text-purple-500", bg: "bg-purple-500/10" },
+            { label: "Today's Schedule", value: jobs.filter(j => j.scheduled_date === new Date().toISOString().split("T")[0]).length, icon: Calendar, color: "text-blue-500", bg: "bg-blue-500/10" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -263,14 +349,17 @@ export default function StaffDashboardPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
             >
-              <Card>
-                <CardContent className="pt-6">
+              <Card className="relative overflow-hidden group hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/5">
+                <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity", stat.bg)} />
+                <CardContent className="pt-6 relative">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">{stat.label}</p>
-                      <p className="text-2xl font-bold">{stat.value}</p>
+                      <p className="text-3xl font-bold">{stat.value}</p>
                     </div>
-                    <stat.icon className={`h-8 w-8 ${stat.color} opacity-80`} />
+                    <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center", stat.bg)}>
+                      <stat.icon className={cn("h-6 w-6", stat.color)} />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -279,18 +368,22 @@ export default function StaffDashboardPage() {
         </div>
 
         {/* Main Content */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-12">
           {/* Jobs List */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
+            className="lg:col-span-4"
           >
-            <Card>
-              <CardHeader>
+            <Card className="h-full">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
                 <CardTitle className="flex items-center gap-2">
                   <ClipboardList className="h-5 w-5 text-primary" />
                   Assigned Jobs
+                  <Badge variant="outline" className="ml-auto">
+                    {jobs.length}
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -298,13 +391,13 @@ export default function StaffDashboardPage() {
                   <TabsList className="w-full rounded-none border-b bg-transparent p-0">
                     <TabsTrigger
                       value="assigned"
-                      className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                      className="flex-1 rounded-none py-3 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary"
                     >
                       Active ({pendingJobs.length + activeJobs.length})
                     </TabsTrigger>
                     <TabsTrigger
                       value="review"
-                      className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                      className="flex-1 rounded-none py-3 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary"
                     >
                       In Review ({reviewJobs.length})
                     </TabsTrigger>
@@ -317,17 +410,22 @@ export default function StaffDashboardPage() {
                         <p>No assigned jobs</p>
                       </div>
                     ) : (
-                      <div className="divide-y">
+                      <div className="divide-y max-h-[400px] overflow-y-auto">
                         {[...activeJobs, ...pendingJobs].map((job) => (
-                          <button
+                          <motion.button
                             key={job.id}
                             onClick={() => {
                               setSelectedJob(job);
                               fetchZones(job.id);
+                              fetchCarModel3D(job.car?.make, job.car?.model);
                             }}
-                            className={`w-full p-4 text-left hover:bg-muted/50 transition-colors ${
-                              selectedJob?.id === job.id ? "bg-muted/50" : ""
-                            }`}
+                            className={cn(
+                              "w-full p-4 text-left transition-all",
+                              selectedJob?.id === job.id 
+                                ? "bg-primary/5 border-l-2 border-l-primary" 
+                                : "hover:bg-muted/50 border-l-2 border-l-transparent"
+                            )}
+                            whileHover={{ x: 4 }}
                           >
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-medium">
@@ -340,7 +438,7 @@ export default function StaffDashboardPage() {
                             <p className="text-sm text-muted-foreground">
                               {job.customer?.name}
                             </p>
-                          </button>
+                          </motion.button>
                         ))}
                       </div>
                     )}
@@ -353,17 +451,22 @@ export default function StaffDashboardPage() {
                         <p>No jobs awaiting review</p>
                       </div>
                     ) : (
-                      <div className="divide-y">
+                      <div className="divide-y max-h-[400px] overflow-y-auto">
                         {reviewJobs.map((job) => (
-                          <button
+                          <motion.button
                             key={job.id}
                             onClick={() => {
                               setSelectedJob(job);
                               fetchZones(job.id);
+                              fetchCarModel3D(job.car?.make, job.car?.model);
                             }}
-                            className={`w-full p-4 text-left hover:bg-muted/50 transition-colors ${
-                              selectedJob?.id === job.id ? "bg-muted/50" : ""
-                            }`}
+                            className={cn(
+                              "w-full p-4 text-left transition-all",
+                              selectedJob?.id === job.id 
+                                ? "bg-purple-500/5 border-l-2 border-l-purple-500" 
+                                : "hover:bg-muted/50 border-l-2 border-l-transparent"
+                            )}
+                            whileHover={{ x: 4 }}
                           >
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-medium">
@@ -376,7 +479,7 @@ export default function StaffDashboardPage() {
                             <p className="text-sm text-muted-foreground">
                               {job.customer?.name}
                             </p>
-                          </button>
+                          </motion.button>
                         ))}
                       </div>
                     )}
@@ -391,171 +494,213 @@ export default function StaffDashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="lg:col-span-2"
+            className="lg:col-span-8"
           >
             {selectedJob ? (
-              <Card>
-                <CardHeader className="pb-4 bg-gradient-to-r from-racing/5 to-primary/5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 rounded-xl bg-racing/10 flex items-center justify-center">
-                        <Car className="h-7 w-7 text-racing" />
+              <div className="space-y-6">
+                {/* 3D Vehicle Viewer */}
+                <Card className="overflow-hidden">
+                  <Job3DViewer
+                    modelUrl={carModel3D?.model_url || null}
+                    carColor={selectedJob.car?.color || carModel3D?.default_color}
+                    vehicleInfo={selectedJob.car ? {
+                      make: selectedJob.car.make,
+                      model: selectedJob.car.model,
+                      year: selectedJob.car.year,
+                      vehicleType: selectedJob.car.vehicle_type
+                    } : undefined}
+                    completedZones={zones.filter(z => z.completed).map(z => 
+                      z.zone_name.toLowerCase().replace(/\s+/g, "_")
+                    )}
+                    totalZones={zones.length}
+                  />
+                </Card>
+
+                {/* Work Area Card */}
+                <Card className="overflow-hidden">
+                  <CardHeader className="pb-4 bg-gradient-to-r from-primary/5 via-racing/5 to-transparent border-b">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/20 to-racing/20 flex items-center justify-center">
+                          <Car className="h-7 w-7 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl">
+                            {selectedJob.car?.make} {selectedJob.car?.model}
+                            {selectedJob.car?.year && ` (${selectedJob.car.year})`}
+                          </CardTitle>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {selectedJob.customer?.name}
+                            </span>
+                            {selectedJob.car?.color && (
+                              <Badge variant="outline" className="text-xs">
+                                {selectedJob.car.color}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-xl">
-                          {selectedJob.car?.make} {selectedJob.car?.model}
-                          {selectedJob.car?.year && ` (${selectedJob.car.year})`}
-                        </CardTitle>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {selectedJob.customer?.name}
+                      <Badge variant="outline" className={getStatusColor(selectedJob.status)}>
+                        {selectedJob.status.replace("_", " ")}
+                      </Badge>
+                    </div>
+
+                    {/* Progress */}
+                    {zones.length > 0 && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-medium text-primary">
+                            {completedZones}/{zones.length} zones complete
                           </span>
-                          {selectedJob.car?.color && (
-                            <span>{selectedJob.car.color}</span>
+                        </div>
+                        <div className="relative">
+                          <Progress value={progressPercent} className="h-3" />
+                          {progressPercent > 0 && (
+                            <motion.div
+                              className="absolute inset-y-0 left-0 flex items-center justify-end pr-2"
+                              style={{ width: `${progressPercent}%` }}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                            >
+                              <span className="text-[10px] font-bold text-white">
+                                {Math.round(progressPercent)}%
+                              </span>
+                            </motion.div>
                           )}
                         </div>
                       </div>
-                    </div>
-                    <Badge variant="outline" className={getStatusColor(selectedJob.status)}>
-                      {selectedJob.status.replace("_", " ")}
-                    </Badge>
-                  </div>
+                    )}
+                  </CardHeader>
 
-                  {/* Progress */}
-                  {zones.length > 0 && (
-                    <div className="mt-4">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-medium">
-                          {completedZones}/{zones.length} zones complete
-                        </span>
-                      </div>
-                      <Progress value={progressPercent} className="h-2" />
-                    </div>
-                  )}
-                </CardHeader>
-
-                <CardContent className="p-0">
-                  {/* Start/Resume Button */}
-                  {(selectedJob.status === "pending" || selectedJob.status === "scheduled") && (
-                    <div className="p-6 text-center border-b">
-                      <Button
-                        size="lg"
-                        onClick={() => handleStartJob(selectedJob.id)}
-                        disabled={updating}
-                        className="gap-2"
-                      >
-                        {updating ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <Play className="h-5 w-5" />
-                        )}
-                        Start Working on This Job
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Vehicle Visual */}
-                  {selectedJob.car && (
-                    <div className="p-4 border-b flex justify-center">
-                      <VehicleSilhouette
-                        vehicleType={(selectedJob.car?.vehicle_type as VehicleType) || "sedan"}
-                        selectedZones={[]}
-                        completedZones={zones.filter(z => z.completed).map(z => z.zone_name.toLowerCase().replace(/\s+/g, '_'))}
-                        interactive={false}
-                      />
-                    </div>
-                  )}
-
-                  {/* Zones Checklist */}
-                  {zones.length > 0 ? (
-                    <div className="divide-y">
-                      {zones.map((zone, i) => (
+                  <CardContent className="p-0">
+                    {/* Start/Resume Button */}
+                    {(selectedJob.status === "pending" || selectedJob.status === "scheduled") && (
+                      <div className="p-8 text-center border-b bg-gradient-to-b from-transparent to-primary/5">
                         <motion.div
-                          key={zone.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                          className={`p-4 flex items-center justify-between ${
-                            zone.completed ? "bg-green-500/5" : ""
-                          }`}
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ type: "spring" }}
                         >
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => !zone.completed && handleCompleteZone(zone.id)}
-                              disabled={selectedJob.status !== "in_progress" || zone.completed || updating}
-                              className={`h-7 w-7 rounded-full flex items-center justify-center transition-colors ${
-                                zone.completed
-                                  ? "bg-green-500 text-white"
-                                  : selectedJob.status === "in_progress"
-                                  ? "border-2 border-muted-foreground/30 hover:border-green-500 hover:bg-green-500/10"
-                                  : "border-2 border-muted-foreground/20"
-                              }`}
-                            >
-                              {zone.completed && <CheckCircle2 className="h-5 w-5" />}
-                            </button>
-                            <div>
-                              <p className={`font-medium ${zone.completed ? "line-through text-muted-foreground" : ""}`}>
-                                {zone.zone_name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {Array.isArray(zone.services) ? zone.services.join(", ") : "No services"}
-                              </p>
-                            </div>
-                          </div>
-                          {zone.completed && (
-                            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
-                              Done
-                            </Badge>
-                          )}
+                          <Button
+                            size="lg"
+                            onClick={() => handleStartJob(selectedJob.id)}
+                            disabled={updating}
+                            className="gap-2 bg-gradient-to-r from-primary to-racing hover:from-primary/90 hover:to-racing/90 shadow-lg shadow-primary/25"
+                          >
+                            {updating ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <Play className="h-5 w-5" />
+                            )}
+                            Start Working on This Job
+                          </Button>
                         </motion.div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-8 text-center text-muted-foreground">
-                      <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>No zones configured for this job</p>
-                    </div>
-                  )}
+                      </div>
+                    )}
 
-                  {/* Submit Button */}
-                  {selectedJob.status === "in_progress" && (
-                    <div className="p-6 bg-muted/30 border-t">
-                      <Button
-                        className="w-full gap-2"
-                        size="lg"
-                        disabled={completedZones < zones.length || zones.length === 0}
-                        onClick={() => setSubmitDialogOpen(true)}
-                      >
-                        <Send className="h-5 w-5" />
-                        Submit for Owner Review
-                      </Button>
-                      {zones.length > 0 && completedZones < zones.length && (
-                        <p className="text-sm text-muted-foreground text-center mt-2">
-                          Complete all zones before submitting
-                        </p>
-                      )}
-                    </div>
-                  )}
+                    {/* Tabs for In-Progress Jobs */}
+                    {selectedJob.status === "in_progress" && (
+                      <Tabs value={workTab} onValueChange={setWorkTab} className="w-full">
+                        <TabsList className="w-full rounded-none border-b bg-transparent p-0">
+                          <TabsTrigger
+                            value="zones"
+                            className="flex-1 rounded-none py-3 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Work Zones
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="activity"
+                            className="flex-1 rounded-none py-3 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary"
+                          >
+                            <TrendingUp className="h-4 w-4 mr-2" />
+                            Activity
+                          </TabsTrigger>
+                        </TabsList>
 
-                  {/* Job Notes */}
-                  {selectedJob.notes && (
-                    <div className="p-4 bg-amber-500/5 border-t border-amber-500/20">
-                      <p className="text-sm font-medium text-amber-600 mb-1">Job Notes:</p>
-                      <p className="text-sm text-muted-foreground">{selectedJob.notes}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                        <TabsContent value="zones" className="m-0">
+                          {zones.length > 0 ? (
+                            <EnhancedZoneSelector
+                              zones={zones}
+                              vehicleType={selectedJob.car?.vehicle_type || "sedan"}
+                              onCompleteZone={handleCompleteZone}
+                              disabled={updating}
+                              isWorking={true}
+                            />
+                          ) : (
+                            <div className="p-8 text-center text-muted-foreground">
+                              <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                              <p>No zones configured for this job</p>
+                            </div>
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="activity" className="m-0 p-4">
+                          <WorkLogsPanel jobId={selectedJob.id} />
+                        </TabsContent>
+                      </Tabs>
+                    )}
+
+                    {/* Non-in-progress zone display */}
+                    {selectedJob.status !== "in_progress" && zones.length > 0 && (
+                      <EnhancedZoneSelector
+                        zones={zones}
+                        vehicleType={selectedJob.car?.vehicle_type || "sedan"}
+                        onCompleteZone={handleCompleteZone}
+                        disabled={true}
+                        isWorking={false}
+                      />
+                    )}
+
+                    {/* Submit Button */}
+                    {selectedJob.status === "in_progress" && zones.length > 0 && (
+                      <div className="p-6 bg-gradient-to-r from-muted/30 to-transparent border-t">
+                        <Button
+                          className="w-full gap-2 bg-gradient-to-r from-primary to-racing"
+                          size="lg"
+                          disabled={completedZones < zones.length}
+                          onClick={() => setSubmitDialogOpen(true)}
+                        >
+                          <Send className="h-5 w-5" />
+                          Submit for Owner Review
+                        </Button>
+                        {completedZones < zones.length && (
+                          <p className="text-sm text-muted-foreground text-center mt-2">
+                            Complete all zones before submitting
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Job Notes */}
+                    {selectedJob.notes && (
+                      <div className="p-4 bg-amber-500/5 border-t border-amber-500/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="h-4 w-4 text-amber-600" />
+                          <p className="text-sm font-medium text-amber-600">Job Notes</p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{selectedJob.notes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             ) : (
               <Card>
                 <CardContent className="py-16 text-center">
-                  <Car className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
-                  <h3 className="font-semibold mb-1">No job selected</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Select a job from the list to view details
-                  </p>
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                  >
+                    <Car className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+                    <h3 className="font-semibold mb-1">No job selected</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Select a job from the list to view details
+                    </p>
+                  </motion.div>
                 </CardContent>
               </Card>
             )}
@@ -565,11 +710,24 @@ export default function StaffDashboardPage() {
 
       {/* Submit Dialog */}
       <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Submit Job for Review</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              Submit Job for Review
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="p-4 rounded-lg bg-muted/50 border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Completion Status</span>
+                <Badge className="bg-accent/80 text-accent-foreground">
+                  {completedZones}/{zones.length} zones
+                </Badge>
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+            </div>
+            
             <div className="space-y-2">
               <Label>Completion Notes (optional)</Label>
               <Textarea
@@ -577,6 +735,7 @@ export default function StaffDashboardPage() {
                 value={submissionNotes}
                 onChange={(e) => setSubmissionNotes(e.target.value)}
                 rows={4}
+                className="resize-none"
               />
             </div>
             <div className="flex gap-3">
@@ -589,7 +748,7 @@ export default function StaffDashboardPage() {
               </Button>
               <Button
                 onClick={handleSubmitForReview}
-                className="flex-1"
+                className="flex-1 bg-gradient-to-r from-primary to-racing"
                 disabled={updating}
               >
                 {updating ? (
