@@ -95,6 +95,7 @@ export default function DashboardPage() {
   });
   const [pendingStaffList, setPendingStaffList] = useState<PendingStaffMember[]>([]);
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>([]);
+  const [awaitingReviewJobs, setAwaitingReviewJobs] = useState<RecentJob[]>([]);
   
   // Staff-specific state
   const [staffJobs, setStaffJobs] = useState<Job[]>([]);
@@ -121,12 +122,13 @@ export default function DashboardPage() {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).toISOString();
 
-      const [jobsRes, customersRes, carsRes, pendingStaffRes, recentJobsRes] = await Promise.all([
+      const [jobsRes, customersRes, carsRes, pendingStaffRes, recentJobsRes, awaitingRes] = await Promise.all([
         supabase.from("jobs").select("id, status, created_at", { count: "exact" }).eq("studio_id", studio.id),
         supabase.from("customers").select("id", { count: "exact" }).eq("studio_id", studio.id),
         supabase.from("cars").select("id", { count: "exact" }).eq("studio_id", studio.id),
         supabase.from("profiles").select("id, full_name, email, phone, created_at").eq("studio_id", studio.id).eq("status", "pending"),
         supabase.from("jobs").select("id, status, created_at, customers(name), cars(make, model)").eq("studio_id", studio.id).order("created_at", { ascending: false }).limit(5),
+        supabase.from("jobs").select("id, status, created_at, customers(name), cars(make, model)").eq("studio_id", studio.id).eq("status", "awaiting_review"),
       ]);
 
       const allJobs = jobsRes.data || [];
@@ -148,6 +150,11 @@ export default function DashboardPage() {
 
       setPendingStaffList((pendingStaffRes.data || []) as PendingStaffMember[]);
       setRecentJobs((recentJobsRes.data || []).map((j: any) => ({
+        ...j,
+        customer: j.customers,
+        car: j.cars,
+      })));
+      setAwaitingReviewJobs((awaitingRes.data || []).map((j: any) => ({
         ...j,
         customer: j.customers,
         car: j.cars,
@@ -742,11 +749,11 @@ export default function DashboardPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-warning" />
-                    Pending Actions {pendingStaffList.length > 0 && `(${pendingStaffList.length})`}
+                    Pending Actions {(pendingStaffList.length + awaitingReviewJobs.length) > 0 && `(${pendingStaffList.length + awaitingReviewJobs.length})`}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {pendingStaffList.length === 0 ? (
+                  {pendingStaffList.length === 0 && awaitingReviewJobs.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
                       <p>No pending items</p>
@@ -756,6 +763,33 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
+                      {/* Awaiting Review Jobs */}
+                      {awaitingReviewJobs.map((job) => (
+                        <a
+                          key={job.id}
+                          href={`/dashboard/jobs/${job.id}`}
+                          className="flex items-center justify-between p-3 rounded-lg border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center">
+                              <Send className="h-4 w-4 text-purple-500" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">
+                                {job.car?.make} {job.car?.model}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {job.customer?.name} • Awaiting your review
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-purple-500/15 text-purple-500 border-purple-500/30">
+                            Review
+                          </Badge>
+                        </a>
+                      ))}
+
+                      {/* Pending Staff */}
                       {pendingStaffList.map((member) => (
                         <div
                           key={member.id}

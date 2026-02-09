@@ -104,6 +104,16 @@ interface TransportRecord {
   recorded_by: string | null;
 }
 
+interface JobSubmission {
+  id: string;
+  notes: string | null;
+  approved: boolean | null;
+  approved_at: string | null;
+  created_at: string;
+  issues_found: string | null;
+  submitted_by_profile?: { full_name: string } | null;
+}
+
 const ZONE_TYPES = {
   exterior: [
     { id: "hood", name: "Hood" },
@@ -162,6 +172,8 @@ export default function JobDetailPage() {
   const [transportRecords, setTransportRecords] = useState<TransportRecord[]>([]);
   const [transportDialogOpen, setTransportDialogOpen] = useState(false);
   const [transportType, setTransportType] = useState<"pickup" | "dropoff">("pickup");
+  const [submissions, setSubmissions] = useState<JobSubmission[]>([]);
+  const [approvalNotes, setApprovalNotes] = useState("");
 
   const [selectedCarZones, setSelectedCarZones] = useState<string[]>([]);
   const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
@@ -178,6 +190,7 @@ export default function JobDetailPage() {
       fetchJobDetails();
       fetchStaff();
       fetchTransportRecords();
+      fetchSubmissions();
     }
   }, [jobId, studio?.id]);
 
@@ -248,6 +261,64 @@ export default function JobDetailPage() {
       .order("recorded_at", { ascending: false });
 
     if (data) setTransportRecords(data);
+  };
+
+  const fetchSubmissions = async () => {
+    if (!jobId) return;
+
+    const { data } = await supabase
+      .from("job_submissions")
+      .select(`
+        *,
+        submitted_by_profile:profiles!job_submissions_submitted_by_fkey(full_name)
+      `)
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: false });
+
+    if (data) setSubmissions(data as JobSubmission[]);
+  };
+
+  const handleApproveSubmission = async (submissionId: string, approved: boolean) => {
+    if (!profile?.id || !job) return;
+    setUpdating(true);
+
+    try {
+      const { error } = await supabase
+        .from("job_submissions")
+        .update({
+          approved,
+          approved_by: profile.id,
+          approved_at: new Date().toISOString(),
+          issues_found: !approved ? approvalNotes || null : null,
+        })
+        .eq("id", submissionId);
+
+      if (error) throw error;
+
+      if (approved) {
+        await supabase
+          .from("jobs")
+          .update({ status: "completed" })
+          .eq("id", job.id);
+
+        toast({ title: "Job approved!", description: "Job marked as completed." });
+      } else {
+        await supabase
+          .from("jobs")
+          .update({ status: "in_progress" })
+          .eq("id", job.id);
+
+        toast({ title: "Job sent back", description: "Worker will see feedback and continue." });
+      }
+
+      setApprovalNotes("");
+      fetchJobDetails();
+      fetchSubmissions();
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Could not process submission." });
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -654,6 +725,68 @@ export default function JobDetailPage() {
                       </Button>
                     )}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Job Submission Review - Owner Approval */}
+            {isOwner && job.status === "awaiting_review" && submissions.length > 0 && (
+              <Card className="border-purple-500/30 bg-purple-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Send className="h-5 w-5 text-purple-500" />
+                    Submission for Review
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {submissions.filter(s => s.approved === null).map((sub) => (
+                    <div key={sub.id} className="space-y-3">
+                      <div className="p-3 rounded-lg bg-background border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">
+                            Submitted by {sub.submitted_by_profile?.full_name || "Staff"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(sub.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        {sub.notes && (
+                          <p className="text-sm text-muted-foreground">{sub.notes}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Feedback (required for rejection)</Label>
+                        <Textarea
+                          placeholder="Issues found, things to redo..."
+                          value={approvalNotes}
+                          onChange={(e) => setApprovalNotes(e.target.value)}
+                          rows={2}
+                          className="resize-none"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleApproveSubmission(sub.id, false)}
+                          disabled={updating || !approvalNotes.trim()}
+                        >
+                          <Ban className="h-4 w-4 mr-1" />
+                          Send Back
+                        </Button>
+                        <Button
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={() => handleApproveSubmission(sub.id, true)}
+                          disabled={updating}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Approve & Complete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}
