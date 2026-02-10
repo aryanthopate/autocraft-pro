@@ -181,6 +181,7 @@ export default function MechanicDashboardPage() {
               updating={updating}
               completedZoneCount={completedZoneCount}
               progressPercent={progressPercent}
+              profileId={profile?.id}
               onStartJob={startJob}
               onCompleteZone={completeZone}
               onSubmitForReview={submitForReview}
