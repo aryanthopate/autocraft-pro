@@ -27,6 +27,8 @@ import {
 import { Job3DViewer } from "@/components/mechanic/Job3DViewer";
 import { EnhancedZoneSelector } from "@/components/mechanic/EnhancedZoneSelector";
 import { WorkLogsPanel } from "@/components/mechanic/WorkLogsPanel";
+import { RejectionFeedback } from "@/components/mechanic/RejectionFeedback";
+import { ZoneMediaUpload } from "@/components/mechanic/ZoneMediaUpload";
 import { cn } from "@/lib/utils";
 import type { WorkbenchJob, WorkbenchZone, CarModel3D } from "@/hooks/useJobWorkbench";
 
@@ -37,6 +39,7 @@ interface JobWorkAreaProps {
   updating: boolean;
   completedZoneCount: number;
   progressPercent: number;
+  profileId?: string;
   onStartJob: (jobId: string) => void;
   onCompleteZone: (zoneId: string) => void;
   onSubmitForReview: (notes: string) => void;
@@ -50,6 +53,7 @@ export function JobWorkArea({
   updating,
   completedZoneCount,
   progressPercent,
+  profileId,
   onStartJob,
   onCompleteZone,
   onSubmitForReview,
@@ -58,6 +62,7 @@ export function JobWorkArea({
   const [activeTab, setActiveTab] = useState("zones");
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [submissionNotes, setSubmissionNotes] = useState("");
+  const [mediaUploadZone, setMediaUploadZone] = useState<{ id: string; name: string } | null>(null);
 
   const handleSubmit = () => {
     onSubmitForReview(submissionNotes);
@@ -84,6 +89,11 @@ export function JobWorkArea({
   return (
     <>
       <div className="space-y-6">
+        {/* Rejection Feedback Banner */}
+        {selectedJob.status === "in_progress" && (
+          <RejectionFeedback jobId={selectedJob.id} />
+        )}
+
         {/* 3D Vehicle Viewer */}
         <Card className="overflow-hidden">
           <Job3DViewer
@@ -218,6 +228,10 @@ export function JobWorkArea({
                       zones={zones}
                       vehicleType={selectedJob.car?.vehicle_type || "sedan"}
                       onCompleteZone={onCompleteZone}
+                      onUploadMedia={(zoneId) => {
+                        const zone = zones.find(z => z.id === zoneId);
+                        if (zone) setMediaUploadZone({ id: zoneId, name: zone.zone_name });
+                      }}
                       disabled={updating}
                       isWorking={true}
                     />
@@ -323,6 +337,18 @@ export function JobWorkArea({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Zone Media Upload */}
+      {mediaUploadZone && profileId && (
+        <ZoneMediaUpload
+          jobId={selectedJob.id}
+          zoneId={mediaUploadZone.id}
+          zoneName={mediaUploadZone.name}
+          profileId={profileId}
+          open={!!mediaUploadZone}
+          onOpenChange={(open) => { if (!open) setMediaUploadZone(null); }}
+        />
+      )}
     </>
   );
 }
