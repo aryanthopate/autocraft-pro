@@ -11,6 +11,7 @@ import {
   TrendingUp,
   FileText,
 } from "lucide-react";
+import { JobTimerWidget } from "@/components/mechanic/JobTimerWidget";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +94,12 @@ export function JobWorkArea({
         {selectedJob.status === "in_progress" && (
           <RejectionFeedback jobId={selectedJob.id} />
         )}
+
+        {/* Timer Widget */}
+        <JobTimerWidget
+          jobId={selectedJob.id}
+          isJobActive={selectedJob.status === "in_progress"}
+        />
 
         {/* 3D Vehicle Viewer */}
         <Card className="overflow-hidden">

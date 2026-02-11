@@ -22,8 +22,9 @@ interface Job3DViewerProps {
   onReady?: () => void;
 }
 
-// Zone positions for highlighting completed work
+// Zone positions for highlighting completed work (cars + bikes + trucks + vans)
 const ZONE_POSITIONS: Record<string, [number, number, number]> = {
+  // Car/SUV zones
   hood: [0, 0.8, 1.2],
   roof: [0, 1.2, 0],
   trunk: [0, 0.7, -1.3],
@@ -39,6 +40,29 @@ const ZONE_POSITIONS: Record<string, [number, number, number]> = {
   door_rear_r: [0.9, 0.6, -0.3],
   windshield: [0, 1, 0.7],
   rear_window: [0, 0.9, -0.8],
+  // Bike/Scooter zones
+  fuel_tank: [0, 0.9, 0.3],
+  seat: [0, 0.8, -0.3],
+  handlebar: [0, 1.1, 0.8],
+  engine: [0, 0.4, 0],
+  exhaust: [0.5, 0.3, -0.5],
+  front_fender: [0, 0.6, 1.0],
+  rear_fender: [0, 0.5, -1.0],
+  headlight: [0, 0.9, 1.2],
+  taillight_bike: [0, 0.7, -1.1],
+  chain_guard: [0.3, 0.3, -0.5],
+  front_wheel_bike: [0, 0.3, 1.0],
+  rear_wheel_bike: [0, 0.3, -1.0],
+  // Truck zones
+  bed: [0, 0.8, -0.8],
+  cab_roof: [0, 1.3, 0.5],
+  cab_door: [-0.9, 0.7, 0.5],
+  tailgate_truck: [0, 0.5, -1.5],
+  step_bar: [-0.9, 0.3, 0.5],
+  // Van zones
+  sliding_door: [-0.9, 0.6, 0],
+  rear_doors: [0, 0.7, -1.5],
+  rear_panel: [-0.8, 0.6, -0.8],
 };
 
 function CompletedZoneMarker({ position, zoneName }: { position: [number, number, number]; zoneName: string }) {
