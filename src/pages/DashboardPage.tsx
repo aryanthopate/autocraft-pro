@@ -34,6 +34,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnimatedCarSilhouette } from "@/components/car/AnimatedCarSilhouette";
 import { SpeedometerWidget } from "@/components/car/SpeedometerWidget";
 import { RacingStatsCard } from "@/components/car/RacingStatsCard";
+import { RevenueChart } from "@/components/dashboard/RevenueChart";
+import { StaffPerformanceCard } from "@/components/dashboard/StaffPerformanceCard";
 
 interface Job {
   id: string;
@@ -606,6 +608,12 @@ export default function DashboardPage() {
               delay={index * 0.1}
             />
           ))}
+        </div>
+
+        {/* Revenue & Performance */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {studio?.id && <RevenueChart studioId={studio.id} />}
+          {studio?.id && <StaffPerformanceCard studioId={studio.id} />}
         </div>
 
         {/* Main content grid */}

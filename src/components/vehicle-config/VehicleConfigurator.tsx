@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { VehicleHotspot, HotspotData } from "./VehicleHotspot";
 import { ServiceSelector } from "./ServiceSelector";
 
-export type VehicleType = "sedan" | "suv" | "bike";
+export type VehicleType = "sedan" | "suv" | "bike" | "truck" | "van" | "scooter";
 export type ViewAngle = "front" | "side" | "rear" | "top";
 
 interface SelectedZone {
@@ -132,6 +132,87 @@ const HOTSPOTS: Record<VehicleType, Record<ViewAngle, HotspotData[]>> = {
       { id: "handlebar_top", name: "Handlebar", x: 30, y: 20, zone_type: "controls" },
     ],
   },
+  scooter: {
+    front: [
+      { id: "headlight", name: "Headlight", x: 50, y: 25, zone_type: "lighting" },
+      { id: "front_apron", name: "Front Apron", x: 50, y: 50, zone_type: "exterior" },
+      { id: "front_wheel_scooter", name: "Front Wheel", x: 50, y: 75, zone_type: "wheels" },
+    ],
+    side: [
+      { id: "body_panel", name: "Body Panel", x: 45, y: 40, zone_type: "exterior" },
+      { id: "seat_scooter", name: "Seat", x: 55, y: 30, zone_type: "interior" },
+      { id: "floorboard", name: "Floorboard", x: 45, y: 60, zone_type: "exterior" },
+      { id: "front_wheel_side", name: "Front Wheel", x: 20, y: 70, zone_type: "wheels" },
+      { id: "rear_wheel_side", name: "Rear Wheel", x: 80, y: 70, zone_type: "wheels" },
+      { id: "exhaust_scooter", name: "Exhaust", x: 75, y: 65, zone_type: "mechanical" },
+    ],
+    rear: [
+      { id: "tail_panel", name: "Tail Panel", x: 50, y: 40, zone_type: "exterior" },
+      { id: "taillight_scooter", name: "Taillight", x: 50, y: 30, zone_type: "lighting" },
+      { id: "rear_wheel_scooter", name: "Rear Wheel", x: 50, y: 70, zone_type: "wheels" },
+    ],
+    top: [
+      { id: "seat_top_scooter", name: "Seat", x: 55, y: 45, zone_type: "interior" },
+      { id: "handlebar_top", name: "Handlebar", x: 40, y: 20, zone_type: "controls" },
+    ],
+  },
+  truck: {
+    front: [
+      { id: "hood", name: "Hood", x: 50, y: 25, zone_type: "exterior" },
+      { id: "windshield", name: "Windshield", x: 50, y: 45, zone_type: "glass" },
+      { id: "grille_truck", name: "Front Grille", x: 50, y: 65, zone_type: "exterior" },
+      { id: "front_bumper", name: "Front Bumper", x: 50, y: 85, zone_type: "exterior" },
+      { id: "headlight_left", name: "Left Headlight", x: 20, y: 60, zone_type: "lighting" },
+      { id: "headlight_right", name: "Right Headlight", x: 80, y: 60, zone_type: "lighting" },
+    ],
+    side: [
+      { id: "cab_roof", name: "Cab Roof", x: 25, y: 12, zone_type: "exterior" },
+      { id: "cab_door", name: "Cab Door", x: 25, y: 40, zone_type: "exterior" },
+      { id: "bed", name: "Truck Bed", x: 65, y: 35, zone_type: "exterior" },
+      { id: "tailgate_truck", name: "Tailgate", x: 90, y: 50, zone_type: "exterior" },
+      { id: "front_wheel", name: "Front Wheel", x: 18, y: 75, zone_type: "wheels" },
+      { id: "rear_wheel", name: "Rear Wheel", x: 78, y: 75, zone_type: "wheels" },
+      { id: "step_bar", name: "Step Bar", x: 25, y: 70, zone_type: "accessories" },
+    ],
+    rear: [
+      { id: "tailgate_rear", name: "Tailgate", x: 50, y: 45, zone_type: "exterior" },
+      { id: "rear_bumper", name: "Rear Bumper", x: 50, y: 85, zone_type: "exterior" },
+      { id: "taillight_left", name: "Left Taillight", x: 20, y: 60, zone_type: "lighting" },
+      { id: "taillight_right", name: "Right Taillight", x: 80, y: 60, zone_type: "lighting" },
+    ],
+    top: [
+      { id: "cab_roof_top", name: "Cab Roof", x: 30, y: 25, zone_type: "exterior" },
+      { id: "bed_top", name: "Truck Bed", x: 65, y: 50, zone_type: "exterior" },
+      { id: "hood_top", name: "Hood", x: 30, y: 10, zone_type: "exterior" },
+    ],
+  },
+  van: {
+    front: [
+      { id: "hood", name: "Hood", x: 50, y: 30, zone_type: "exterior" },
+      { id: "windshield", name: "Windshield", x: 50, y: 50, zone_type: "glass" },
+      { id: "front_bumper", name: "Front Bumper", x: 50, y: 85, zone_type: "exterior" },
+      { id: "headlight_left", name: "Left Headlight", x: 20, y: 65, zone_type: "lighting" },
+      { id: "headlight_right", name: "Right Headlight", x: 80, y: 65, zone_type: "lighting" },
+    ],
+    side: [
+      { id: "roof", name: "Roof", x: 50, y: 10, zone_type: "exterior" },
+      { id: "front_door", name: "Front Door", x: 22, y: 45, zone_type: "exterior" },
+      { id: "sliding_door", name: "Sliding Door", x: 50, y: 45, zone_type: "exterior" },
+      { id: "rear_panel", name: "Rear Panel", x: 78, y: 45, zone_type: "exterior" },
+      { id: "front_wheel", name: "Front Wheel", x: 18, y: 78, zone_type: "wheels" },
+      { id: "rear_wheel", name: "Rear Wheel", x: 80, y: 78, zone_type: "wheels" },
+    ],
+    rear: [
+      { id: "rear_doors", name: "Rear Doors", x: 50, y: 45, zone_type: "exterior" },
+      { id: "rear_bumper", name: "Rear Bumper", x: 50, y: 85, zone_type: "exterior" },
+      { id: "taillight_left", name: "Left Taillight", x: 20, y: 55, zone_type: "lighting" },
+      { id: "taillight_right", name: "Right Taillight", x: 80, y: 55, zone_type: "lighting" },
+    ],
+    top: [
+      { id: "roof_top", name: "Roof", x: 50, y: 40, zone_type: "exterior" },
+      { id: "hood_top", name: "Hood", x: 30, y: 10, zone_type: "exterior" },
+    ],
+  },
 };
 
 export function VehicleConfigurator({
@@ -201,8 +282,8 @@ export function VehicleConfigurator({
     <div className="space-y-6">
       {/* Vehicle Type Selector */}
       {onVehicleTypeChange && (
-        <div className="flex justify-center gap-3">
-          {(["sedan", "suv", "bike"] as VehicleType[]).map((type) => (
+        <div className="flex justify-center gap-2 flex-wrap">
+          {(["sedan", "suv", "bike", "scooter", "truck", "van"] as VehicleType[]).map((type) => (
             <motion.button
               key={type}
               whileHover={{ scale: 1.05 }}
@@ -402,6 +483,9 @@ function VehicleSVG({
         {vehicleType === "sedan" && <SedanSVG view={view} />}
         {vehicleType === "suv" && <SUVSVG view={view} />}
         {vehicleType === "bike" && <BikeSVG view={view} />}
+        {vehicleType === "scooter" && <BikeSVG view={view} />}
+        {vehicleType === "truck" && <SUVSVG view={view} />}
+        {vehicleType === "van" && <SUVSVG view={view} />}
       </svg>
     </div>
   );
