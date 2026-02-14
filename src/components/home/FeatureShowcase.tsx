@@ -55,44 +55,16 @@ const features = [
   },
 ];
 
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.08,
-    },
-  },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 40, rotateX: 10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    rotateX: 0,
-    transition: { duration: 0.6, ease: "easeOut" as const },
-  },
-};
-
 export function FeatureShowcase() {
   return (
-    <section className="py-24 lg:py-32 relative">
+    <section className="py-24 lg:py-32 relative" style={{ minHeight: '600px' }}>
       {/* Red accent line */}
-      <motion.div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1 rounded-full bg-racing"
-        initial={{ scaleX: 0 }}
-        whileInView={{ scaleX: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
-      />
+      <div className="flex justify-center mb-0">
+        <div className="w-24 h-1 rounded-full bg-racing" />
+      </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
+        <div className="text-center mb-16">
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
             Built for the{" "}
             <span className="text-gradient-racing">Detail-Obsessed</span>
@@ -101,19 +73,12 @@ export function FeatureShowcase() {
             Every feature engineered by detailing professionals, for detailing
             professionals.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {features.map((feature) => (
             <motion.div
               key={feature.title}
-              variants={cardVariants}
               whileHover={{
                 y: -8,
                 transition: { duration: 0.25 },
@@ -149,7 +114,7 @@ export function FeatureShowcase() {
               </p>
             </motion.div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
