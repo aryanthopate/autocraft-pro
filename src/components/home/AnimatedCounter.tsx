@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
 
 interface AnimatedCounterProps {
   value: number;
@@ -39,11 +38,11 @@ export function AnimatedCounter({ value, suffix = "", label, delay = 0 }: Animat
     <motion.div
       ref={ref}
       className="text-center py-4 px-2"
-      initial={{ opacity: 0 }}
-      animate={isInView ? { opacity: 1 } : {}}
-      transition={{ duration: 0.5, delay }}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={isInView ? { opacity: 1, scale: 1 } : {}}
+      transition={{ duration: 0.5, delay, type: "spring", stiffness: 120 }}
     >
-      <div className="font-display text-3xl sm:text-4xl font-bold text-gradient-primary">
+      <div className="font-display text-3xl sm:text-4xl font-bold text-gradient-racing">
         {count}
         {suffix}
       </div>
