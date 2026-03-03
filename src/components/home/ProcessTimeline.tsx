@@ -22,39 +22,31 @@ const item = {
 
 export function ProcessTimeline() {
   return (
-    <section className="py-24 lg:py-32 relative overflow-hidden">
-      <div className="section-divider mb-16" />
-
-      <div className="flex justify-center mb-6">
-        <motion.div
-          className="w-16 h-1 rounded-full bg-gradient-to-r from-racing/60 via-racing to-racing/60"
-          initial={{ scaleX: 0 }}
-          whileInView={{ scaleX: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        />
-      </div>
-
+    <section className="py-20 lg:py-28">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-14"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
+          <span className="inline-block text-primary text-sm font-semibold uppercase tracking-widest mb-3">
+            Workflow
+          </span>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-            From Intake to <span className="text-gradient-racing">Delivery</span>
+            From Intake to{" "}
+            <span className="text-gradient-primary">Delivery</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            A battle-tested workflow designed by detailing professionals.
+            A battle-tested 6-step workflow designed by detailing professionals.
           </p>
         </motion.div>
 
-        {/* Connecting line */}
         <div className="relative">
+          {/* Connecting line */}
           <motion.div
-            className="hidden lg:block absolute top-[48px] left-[8%] right-[8%] h-px bg-gradient-to-r from-transparent via-racing/20 to-transparent"
+            className="hidden lg:block absolute top-[52px] left-[8%] right-[8%] h-px bg-border"
             initial={{ scaleX: 0 }}
             whileInView={{ scaleX: 1 }}
             viewport={{ once: true }}
@@ -70,25 +62,16 @@ export function ProcessTimeline() {
           >
             {steps.map((step, i) => (
               <motion.div key={step.title} variants={item} className="group relative">
-                <motion.div
-                  whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                  className="relative p-5 rounded-xl border border-border bg-card hover:border-racing/40 transition-all duration-300 h-full"
-                >
-                  <div
-                    className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                    style={{
-                      background: "radial-gradient(ellipse at 50% 0%, hsl(var(--racing-red) / 0.08) 0%, transparent 70%)",
-                    }}
-                  />
-                  <div className="absolute -top-3 -right-2 flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-racing to-racing-dark text-white text-xs font-bold shadow-lg shadow-racing/20">
+                <div className="relative p-5 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-300 h-full text-center">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-md">
                     {i + 1}
                   </div>
-                  <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-racing/10 text-racing mb-3 group-hover:bg-racing/20 group-hover:shadow-md group-hover:shadow-racing/20 transition-all duration-300">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary mb-3 mx-auto group-hover:bg-primary/15 transition-colors">
                     <step.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="relative font-display text-sm font-semibold mb-1">{step.title}</h3>
-                  <p className="relative text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
-                </motion.div>
+                  <h3 className="font-display text-sm font-semibold mb-1">{step.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
+                </div>
               </motion.div>
             ))}
           </motion.div>

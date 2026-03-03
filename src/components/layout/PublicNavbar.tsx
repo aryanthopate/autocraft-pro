@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -15,6 +16,7 @@ export function PublicNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -31,23 +33,19 @@ export function PublicNavbar() {
         className={cn(
           "border-b transition-all duration-300",
           scrolled
-            ? "border-border/60 bg-background/90 backdrop-blur-2xl shadow-lg shadow-racing/5"
-            : "border-transparent bg-transparent backdrop-blur-sm"
+            ? "border-border bg-background/90 backdrop-blur-xl shadow-sm"
+            : "border-transparent bg-transparent"
         )}
       >
-        {/* Racing red top accent line */}
-        <div className="h-[2px] bg-gradient-to-r from-transparent via-racing to-transparent opacity-60" />
-
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-racing to-racing-dark overflow-hidden">
-                <span className="font-display text-sm font-bold text-white tracking-tighter">DF</span>
-                <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/10" />
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-primary overflow-hidden">
+                <span className="font-display text-sm font-bold text-primary-foreground tracking-tighter">DF</span>
               </div>
               <span className="font-display text-xl font-bold tracking-tight">
-                Detail<span className="text-racing">Flow</span>
+                Detail<span className="text-primary">Flow</span>
               </span>
             </Link>
 
@@ -60,15 +58,15 @@ export function PublicNavbar() {
                   className={cn(
                     "relative px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                     location.pathname === link.href
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   )}
                 >
                   {link.label}
                   {location.pathname === link.href && (
                     <motion.div
                       layoutId="nav-indicator"
-                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-racing"
+                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-primary"
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                   )}
@@ -76,31 +74,41 @@ export function PublicNavbar() {
               ))}
             </div>
 
-            {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex md:items-center md:gap-3">
+            {/* Desktop Actions */}
+            <div className="hidden md:flex md:items-center md:gap-2">
+              <button
+                onClick={toggleTheme}
+                className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </button>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/login">Log in</Link>
               </Button>
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Button
-                  size="sm"
-                  asChild
-                  className="bg-gradient-to-r from-racing to-racing-dark text-white hover:opacity-90 shadow-lg shadow-racing/20 font-semibold"
-                >
-                  <Link to="/signup">Start Free Trial</Link>
-                </Button>
-              </motion.div>
+              <Button size="sm" asChild className="font-semibold">
+                <Link to="/signup">Start Free Trial</Link>
+              </Button>
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              type="button"
-              className="md:hidden rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              <span className="sr-only">Open menu</span>
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+            {/* Mobile */}
+            <div className="flex items-center gap-2 md:hidden">
+              <button
+                onClick={toggleTheme}
+                className="h-9 w-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                <span className="sr-only">Open menu</span>
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -112,7 +120,7 @@ export function PublicNavbar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl"
+              className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl"
             >
               <div className="container mx-auto px-4 py-4 space-y-2">
                 {navLinks.map((link) => (
@@ -122,8 +130,8 @@ export function PublicNavbar() {
                     className={cn(
                       "block py-2.5 px-3 rounded-lg text-base font-medium transition-colors",
                       location.pathname === link.href
-                        ? "text-racing bg-racing/10"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                        ? "text-primary bg-primary/10"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                     )}
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -134,10 +142,7 @@ export function PublicNavbar() {
                   <Button variant="ghost" className="w-full justify-center" asChild>
                     <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>
                   </Button>
-                  <Button
-                    className="w-full bg-gradient-to-r from-racing to-racing-dark text-white"
-                    asChild
-                  >
+                  <Button className="w-full" asChild>
                     <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>Start Free Trial</Link>
                   </Button>
                 </div>

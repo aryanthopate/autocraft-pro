@@ -12,111 +12,135 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 
-  DetailFlow Pro - Premium Automotive SaaS Design System
-  Dark theme with warm amber accents for luxury automotive feel
-  All colors in HSL format
-*/
-
 @layer base {
   :root {
-    /* Core backgrounds - deep charcoal palette */
-    --background: 220 16% 6%;
-    --foreground: 40 6% 90%;
+    /* Light mode - clean, professional */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
 
-    /* Card and popover - slightly elevated surfaces */
-    --card: 220 14% 9%;
-    --card-foreground: 40 6% 90%;
-    --popover: 220 14% 9%;
-    --popover-foreground: 40 6% 90%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Primary - warm amber/gold (luxury automotive) */
-    --primary: 38 92% 50%;
-    --primary-foreground: 220 16% 6%;
+    /* Primary - professional blue */
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary - steel gray */
-    --secondary: 220 12% 16%;
-    --secondary-foreground: 40 6% 85%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    /* Muted - subtle dark tones */
-    --muted: 220 12% 12%;
-    --muted-foreground: 220 8% 55%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    /* Accent - racing red (new!) */
-    --accent: 0 72% 50%;
+    --accent: 221 83% 53%;
     --accent-foreground: 0 0% 100%;
 
-    /* Destructive - muted red for professional feel */
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 40 6% 95%;
-
-    /* Success - clean green */
-    --success: 142 60% 42%;
-    --success-foreground: 40 6% 95%;
-
-    /* Warning - warm amber variant */
-    --warning: 45 93% 47%;
-    --warning-foreground: 220 16% 6%;
-
-    /* Racing red accent */
-    --racing-red: 0 72% 50%;
-    --racing-red-glow: 0 72% 60%;
-    --racing-red-dark: 0 72% 35%;
-
-    /* Borders and inputs */
-    --border: 220 12% 18%;
-    --input: 220 12% 14%;
-    --ring: 38 92% 50%;
-
-    --radius: 0.5rem;
-
-    /* Sidebar - premium dark */
-    --sidebar-background: 220 16% 7%;
-    --sidebar-foreground: 40 6% 85%;
-    --sidebar-primary: 38 92% 50%;
-    --sidebar-primary-foreground: 220 16% 6%;
-    --sidebar-accent: 220 12% 12%;
-    --sidebar-accent-foreground: 40 6% 90%;
-    --sidebar-border: 220 12% 15%;
-    --sidebar-ring: 38 92% 50%;
-
-    /* Chart colors */
-    --chart-1: 38 92% 50%;
-    --chart-2: 142 60% 42%;
-    --chart-3: 200 80% 50%;
-    --chart-4: 280 60% 55%;
-    --chart-5: 0 72% 50%;
-
-    /* Custom tokens for automotive theme */
-    --chrome: 220 10% 45%;
-    --chrome-highlight: 220 10% 65%;
-    --carbon: 220 14% 8%;
-    --surface-elevated: 220 14% 11%;
-    --glow-primary: 38 92% 50%;
-    --glow-red: 0 72% 50%;
-  }
-
-  /* Light mode - rarely used but available */
-  .light {
-    --background: 40 20% 98%;
-    --foreground: 220 20% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
-    --primary: 38 92% 45%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 10% 94%;
-    --secondary-foreground: 220 20% 15%;
-    --muted: 220 10% 94%;
-    --muted-foreground: 220 10% 40%;
-    --accent: 220 10% 94%;
-    --accent-foreground: 38 92% 40%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 10% 88%;
-    --input: 220 10% 88%;
-    --ring: 38 92% 45%;
+
+    --success: 142 60% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 45 93% 47%;
+    --warning-foreground: 222 47% 11%;
+
+    /* Racing red accent */
+    --racing-red: 221 83% 53%;
+    --racing-red-glow: 221 83% 63%;
+    --racing-red-dark: 221 83% 43%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.625rem;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 221 83% 53%;
+
+    /* Chart */
+    --chart-1: 221 83% 53%;
+    --chart-2: 142 60% 42%;
+    --chart-3: 262 83% 58%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 72% 50%;
+
+    /* Custom tokens */
+    --chrome: 220 9% 46%;
+    --chrome-highlight: 220 9% 66%;
+    --carbon: 220 14% 96%;
+    --surface-elevated: 220 14% 98%;
+    --glow-primary: 221 83% 53%;
+    --glow-red: 221 83% 53%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 95%;
+
+    --card: 222 40% 9%;
+    --card-foreground: 210 20% 95%;
+    --popover: 222 40% 9%;
+    --popover-foreground: 210 20% 95%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 210 20% 90%;
+
+    --muted: 222 30% 12%;
+    --muted-foreground: 220 9% 55%;
+
+    --accent: 221 83% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 210 20% 95%;
+
+    --success: 142 60% 42%;
+    --success-foreground: 210 20% 95%;
+
+    --warning: 45 93% 47%;
+    --warning-foreground: 222 47% 6%;
+
+    --racing-red: 221 83% 53%;
+    --racing-red-glow: 221 83% 63%;
+    --racing-red-dark: 221 83% 43%;
+
+    --border: 222 25% 18%;
+    --input: 222 25% 14%;
+    --ring: 221 83% 53%;
+
+    --sidebar-background: 222 47% 7%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 30% 12%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 222 25% 15%;
+    --sidebar-ring: 221 83% 53%;
+
+    --chart-1: 221 83% 53%;
+    --chart-2: 142 60% 42%;
+    --chart-3: 262 83% 58%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 72% 50%;
+
+    --chrome: 220 10% 45%;
+    --chrome-highlight: 220 10% 65%;
+    --carbon: 222 40% 8%;
+    --surface-elevated: 222 40% 11%;
+    --glow-primary: 221 83% 53%;
+    --glow-red: 221 83% 53%;
   }
 }
 
@@ -141,17 +165,14 @@
 }
 
 @layer components {
-  /* Premium glass effect for cards */
   .glass-card {
     @apply bg-card/80 backdrop-blur-xl border border-border/50;
   }
 
-  /* Subtle glow effect for primary elements */
   .glow-primary {
     box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.3);
   }
 
-  /* Chrome/metallic text effect */
   .text-chrome {
     background: linear-gradient(
       180deg,
@@ -164,7 +185,6 @@
     -webkit-text-fill-color: transparent;
   }
 
-  /* Premium gradient backgrounds */
   .gradient-dark {
     background: linear-gradient(
       180deg,
@@ -181,12 +201,10 @@
     );
   }
 
-  /* Automotive-style section divider */
   .section-divider {
     @apply h-px bg-gradient-to-r from-transparent via-border to-transparent;
   }
 
-  /* Premium input focus states */
   .input-premium {
     @apply transition-all duration-200;
   }
@@ -195,7 +213,6 @@
     box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
   }
 
-  /* Status badges */
   .badge-pending {
     @apply bg-warning/15 text-warning border-warning/30;
   }
@@ -208,25 +225,22 @@
     @apply bg-primary/15 text-primary border-primary/30;
   }
 
-  /* Racing red glow effect */
   .glow-red {
-    box-shadow: 0 0 20px -5px hsl(var(--racing-red) / 0.4);
+    box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.4);
   }
 
-  /* Car zone highlight */
   .zone-highlight {
     @apply transition-all duration-300;
   }
 
   .zone-highlight:hover {
-    filter: drop-shadow(0 0 8px hsl(var(--racing-red) / 0.6));
+    filter: drop-shadow(0 0 8px hsl(var(--primary) / 0.6));
   }
 
   .zone-selected {
-    filter: drop-shadow(0 0 12px hsl(var(--racing-red) / 0.8));
+    filter: drop-shadow(0 0 12px hsl(var(--primary) / 0.8));
   }
 
-  /* Speedometer animation */
   .speedometer-needle {
     transform-origin: bottom center;
     animation: needle-sweep 2s ease-out forwards;
@@ -237,46 +251,31 @@
     100% { transform: rotate(var(--needle-angle, 45deg)); }
   }
 
-  /* Racing stripes */
-  .racing-stripes {
-    background: repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      hsl(var(--racing-red) / 0.1) 2px,
-      hsl(var(--racing-red) / 0.1) 4px
-    );
-  }
-
-  /* Car silhouette glow */
   .car-glow {
-    filter: drop-shadow(0 4px 20px hsl(var(--racing-red) / 0.3))
+    filter: drop-shadow(0 4px 20px hsl(var(--primary) / 0.3))
             drop-shadow(0 0 40px hsl(var(--primary) / 0.2));
   }
 }
 
 @layer utilities {
-  /* Text balance for headings */
   .text-balance {
     text-wrap: balance;
   }
 
-  /* Gradient text */
   .text-gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(45, 93%, 60%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(221, 83%, 65%) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   .text-gradient-racing {
-    background: linear-gradient(135deg, hsl(var(--racing-red)) 0%, hsl(15, 85%, 60%) 50%, hsl(var(--primary)) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262, 83%, 58%) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
-  /* Animation utilities */
   .animate-fade-in {
     animation: fadeIn 0.5s ease-out forwards;
   }
@@ -286,26 +285,15 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Subtle hover lift */
   .hover-lift {
     @apply transition-transform duration-200;
   }

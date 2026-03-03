@@ -37,12 +37,12 @@ export function AnimatedCounter({ value, suffix = "", label, delay = 0 }: Animat
   return (
     <motion.div
       ref={ref}
-      className="text-center py-4 px-2"
+      className="text-center py-5 px-2"
       initial={{ opacity: 0, scale: 0.8 }}
       animate={isInView ? { opacity: 1, scale: 1 } : {}}
       transition={{ duration: 0.5, delay, type: "spring", stiffness: 120 }}
     >
-      <div className="font-display text-3xl sm:text-4xl font-bold text-gradient-racing">
+      <div className="font-display text-3xl sm:text-4xl font-bold text-primary">
         {count}
         {suffix}
       </div>
