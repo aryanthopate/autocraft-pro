@@ -25,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AnimatedCarSilhouette } from "@/components/car/AnimatedCarSilhouette";
+// AnimatedCarSilhouette removed from owner dashboard
 import { SpeedometerWidget } from "@/components/car/SpeedometerWidget";
 import { RacingStatsCard } from "@/components/car/RacingStatsCard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
@@ -214,7 +214,7 @@ function StaffDashboardView() {
 function OwnerDashboardView() {
   const { profile, studio } = useAuth();
   const { toast } = useToast();
-  const [selectedCarZones, setSelectedCarZones] = useState<string[]>([]);
+  // Car zone selector removed — it belongs in job creation, not owner dashboard
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     activeJobs: 0, customers: 0, vehicles: 0, completedThisMonth: 0,
@@ -433,40 +433,8 @@ function OwnerDashboardView() {
       </div>
 
       {/* Performance + Quick Actions */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* Car Zone Selector */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="lg:col-span-3">
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b border-border/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-racing/10 flex items-center justify-center">
-                    <Target className="h-4 w-4 text-racing" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Car Zone Selector</CardTitle>
-                    <p className="text-xs text-muted-foreground mt-0.5">Click zones to configure services</p>
-                  </div>
-                </div>
-                {selectedCarZones.length > 0 && (
-                  <button className="text-xs text-racing hover:text-racing/80 transition-colors" onClick={() => setSelectedCarZones([])}>
-                    Clear selection
-                  </button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <AnimatedCarSilhouette
-                selectedZones={selectedCarZones}
-                onZoneClick={(zoneId) => setSelectedCarZones(prev => prev.includes(zoneId) ? prev.filter(id => id !== zoneId) : [...prev, zoneId])}
-                interactive={true}
-              />
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Performance + Quick Actions */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="lg:col-span-2 space-y-4">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
@@ -483,12 +451,14 @@ function OwnerDashboardView() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
 
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-racing/10 flex items-center justify-center">
-                  <Zap className="h-4 w-4 text-racing" />
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Zap className="h-4 w-4 text-primary" />
                 </div>
                 <CardTitle className="text-lg">Quick Actions</CardTitle>
               </div>

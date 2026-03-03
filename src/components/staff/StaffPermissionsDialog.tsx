@@ -38,57 +38,24 @@ const PERMISSION_CATEGORIES = [
     ]
   },
   {
-    category: "Customers",
+    category: "Customers & Vehicles",
     permissions: [
       { key: "customers_view", label: "View Customers", description: "Can view customer information" },
-      { key: "customers_create", label: "Create Customers", description: "Can add new customers" },
-      { key: "customers_edit", label: "Edit Customers", description: "Can modify customer details" },
-    ]
-  },
-  {
-    category: "Vehicles",
-    permissions: [
+      { key: "customers_create", label: "Add Customers", description: "Can add new customers" },
       { key: "vehicles_view", label: "View Vehicles", description: "Can view vehicle information" },
-      { key: "vehicles_create", label: "Create Vehicles", description: "Can register new vehicles" },
-      { key: "vehicles_edit", label: "Edit Vehicles", description: "Can modify vehicle details" },
+      { key: "vehicles_create", label: "Register Vehicles", description: "Can register new vehicles" },
     ]
   },
   {
-    category: "Transport",
+    category: "Operations",
     permissions: [
       { key: "transport_pickup", label: "Pickup Vehicles", description: "Can handle vehicle pickups" },
       { key: "transport_drop", label: "Drop Vehicles", description: "Can handle vehicle drop-offs" },
-    ]
-  },
-  {
-    category: "Media",
-    permissions: [
       { key: "media_upload", label: "Upload Media", description: "Can upload photos/videos for jobs" },
+      { key: "invoices_view", label: "View Invoices", description: "Can view and manage invoices" },
     ]
   },
-  {
-    category: "Vehicle Zones (Visibility)",
-    permissions: [
-      { key: "zone_hood", label: "Hood", description: "Can view and work on hood zone" },
-      { key: "zone_roof", label: "Roof", description: "Can view and work on roof zone" },
-      { key: "zone_trunk", label: "Trunk", description: "Can view and work on trunk/boot zone" },
-      { key: "zone_front_bumper", label: "Front Bumper", description: "Can view and work on front bumper" },
-      { key: "zone_rear_bumper", label: "Rear Bumper", description: "Can view and work on rear bumper" },
-      { key: "zone_left_doors", label: "Left Doors", description: "Can view and work on left side doors" },
-      { key: "zone_right_doors", label: "Right Doors", description: "Can view and work on right side doors" },
-      { key: "zone_left_fenders", label: "Left Fenders", description: "Can view and work on left fenders" },
-      { key: "zone_right_fenders", label: "Right Fenders", description: "Can view and work on right fenders" },
-      { key: "zone_mirrors", label: "Mirrors", description: "Can view and work on side mirrors" },
-      { key: "zone_windshield", label: "Windshield", description: "Can view and work on windshield" },
-      { key: "zone_rear_glass", label: "Rear Glass", description: "Can view and work on rear window" },
-      { key: "zone_wheels", label: "Wheels", description: "Can view and work on wheels/rims" },
-      { key: "zone_interior", label: "Interior", description: "Can view and work on interior" },
-    ]
-  }
 ];
-
-// Flatten for easy counting
-const AVAILABLE_PERMISSIONS = PERMISSION_CATEGORIES.flatMap(cat => cat.permissions);
 
 export function StaffPermissionsDialog({
   open,
@@ -107,10 +74,7 @@ export function StaffPermissionsDialog({
   }, [staff]);
 
   const handleToggle = (key: string) => {
-    setPermissions((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const handleSave = async () => {
@@ -125,19 +89,12 @@ export function StaffPermissionsDialog({
 
       if (error) throw error;
 
-      toast({
-        title: "Permissions updated",
-        description: `${staff.full_name}'s permissions have been saved.`,
-      });
+      toast({ title: "Permissions updated", description: `${staff.full_name}'s permissions have been saved.` });
       onUpdate();
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving permissions:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not save permissions.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Could not save permissions." });
     } finally {
       setSaving(false);
     }
