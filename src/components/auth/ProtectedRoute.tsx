@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requireOwner?: boolean;
   requireApproved?: boolean;
-  allowedRoles?: ("owner" | "staff" | "mechanic")[];
+  allowedRoles?: ("owner" | "staff" | "mechanic" | "manager" | "admin")[];
 }
 
 export function ProtectedRoute({
@@ -16,7 +16,7 @@ export function ProtectedRoute({
   requireApproved = true,
   allowedRoles,
 }: ProtectedRouteProps) {
-  const { user, profile, loading, isOwner, isApproved, isPending, getDashboardRoute } = useAuth();
+  const { user, profile, loading, isOwner, isApproved, isPending, isAdmin, getDashboardRoute } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -31,7 +31,7 @@ export function ProtectedRoute({
     if (!profile) {
       // User exists but no profile - check if staff needs onboarding
       const metadata = user.user_metadata || {};
-      if (metadata.role === "staff" || metadata.role === "mechanic") {
+      if (metadata.role === "staff" || metadata.role === "mechanic" || metadata.role === "manager") {
         if (!metadata.studio_key) {
           navigate("/staff-onboarding");
         } else {
@@ -43,7 +43,7 @@ export function ProtectedRoute({
       return;
     }
 
-    if (requireApproved && !isApproved && !isOwner) {
+    if (requireApproved && !isApproved && !isOwner && !isAdmin) {
       // Staff/mechanic needs approval
       if (isPending) {
         navigate("/pending-approval");
@@ -66,7 +66,7 @@ export function ProtectedRoute({
         return;
       }
     }
-  }, [user, profile, loading, isOwner, isApproved, isPending, requireOwner, requireApproved, allowedRoles, navigate, location, getDashboardRoute]);
+  }, [user, profile, loading, isOwner, isApproved, isPending, isAdmin, requireOwner, requireApproved, allowedRoles, navigate, location, getDashboardRoute]);
 
   if (loading) {
     return (
@@ -79,7 +79,7 @@ export function ProtectedRoute({
     );
   }
 
-  if (!user || (requireApproved && !isApproved && !isOwner) || (requireOwner && !isOwner)) {
+  if (!user || (requireApproved && !isApproved && !isOwner && !isAdmin) || (requireOwner && !isOwner)) {
     return null;
   }
 

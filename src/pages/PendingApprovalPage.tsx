@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function PendingApprovalPage() {
-  const { user, profile, signOut, isApproved, isOwner, loading } = useAuth();
+  const { user, profile, signOut, isApproved, isOwner, loading, getDashboardRoute } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,9 +16,9 @@ export default function PendingApprovalPage() {
     }
 
     if (!loading && (isApproved || isOwner)) {
-      navigate("/dashboard");
+      navigate(getDashboardRoute());
     }
-  }, [user, profile, isApproved, isOwner, loading, navigate]);
+  }, [user, profile, isApproved, isOwner, loading, navigate, getDashboardRoute]);
 
   const handleSignOut = async () => {
     await signOut();

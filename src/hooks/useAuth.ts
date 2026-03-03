@@ -9,7 +9,7 @@ export interface UserProfile {
   full_name: string;
   email: string;
   phone: string | null;
-  role: "owner" | "staff" | "mechanic";
+  role: "owner" | "staff" | "mechanic" | "manager" | "admin";
   status: "pending" | "approved" | "rejected";
   permissions: Record<string, boolean>;
   avatar_url: string | null;
@@ -149,21 +149,22 @@ export function useAuth() {
   };
 
   const isOwner = profile?.role === "owner";
-  const isStaff = profile?.role === "staff";
+  const isStaff = profile?.role === "staff" || profile?.role === "manager";
   const isMechanic = profile?.role === "mechanic";
   const isApproved = profile?.status === "approved";
   const isPending = profile?.status === "pending";
 
   // Helper to get dashboard route based on role
   const getDashboardRoute = useCallback(() => {
-    // Admins go to admin panel
-    if (isAdmin) return "/admin";
-    
+    if (isAdmin || profile?.role === "admin") return "/admin";
+
     if (!profile) return "/dashboard";
+
     switch (profile.role) {
       case "owner":
         return "/dashboard";
       case "staff":
+      case "manager":
         return "/staff";
       case "mechanic":
         return "/mechanic";

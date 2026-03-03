@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SetupPage() {
-  const { user, profile, loading, refetchProfile } = useAuth();
+  const { user, profile, loading, refetchProfile, getDashboardRoute } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSettingUp, setIsSettingUp] = useState(false);
@@ -23,7 +23,7 @@ export default function SetupPage() {
     // If profile already exists, redirect appropriately
     if (profile) {
       if (profile.status === "approved" || profile.role === "owner") {
-        navigate("/dashboard");
+        navigate(getDashboardRoute());
       } else if (profile.status === "pending") {
         navigate("/pending-approval");
       }
@@ -34,14 +34,14 @@ export default function SetupPage() {
     const metadata = user.user_metadata || {};
     
     // Staff without studio_key go to onboarding to enter key
-    if (metadata.role === "staff" && !metadata.studio_key) {
+    if ((metadata.role === "staff" || metadata.role === "mechanic" || metadata.role === "manager") && !metadata.studio_key) {
       navigate("/staff-onboarding");
       return;
     }
 
     // Create profile for new user (owner or staff with key)
     setupProfile();
-  }, [user, profile, loading]);
+  }, [user, profile, loading, getDashboardRoute, navigate]);
 
   const setupProfile = async () => {
     if (!user || isSettingUp) return;
@@ -114,6 +114,7 @@ export default function SetupPage() {
         navigate("/dashboard");
 
       } else if (studioKey) {
+        const requestedRole = metadata.role === "mechanic" ? "mechanic" : "staff";
         // Staff joining a studio
         const { data: studioData, error: studioError } = await supabase
           .from("studios")
@@ -140,7 +141,7 @@ export default function SetupPage() {
             full_name: metadata.full_name || user.email?.split("@")[0] || "Staff",
             email: user.email!,
             phone: metadata.phone,
-            role: "staff",
+            role: requestedRole,
             status: "pending",
           });
 
