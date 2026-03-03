@@ -98,35 +98,50 @@ export default function LoginPage() {
         return;
       }
 
-      // Fetch user profile to determine dashboard route
       if (data.user) {
+        // Check admin first
+        const { data: adminId } = await supabase.rpc("check_is_admin", { p_user_id: data.user.id });
+        if (adminId) {
+          toast({ title: "Welcome back!", description: "Signed in as admin." });
+          navigate("/admin");
+          return;
+        }
+
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("role, status")
+          .select("role, status, studio_id")
           .eq("user_id", data.user.id)
           .maybeSingle();
 
-        toast({
-          title: "Welcome back!",
-          description: "You have been logged in successfully.",
-        });
+        // No profile yet — send to setup/onboarding
+        if (!profileData) {
+          const metadata = data.user.user_metadata || {};
+          if (metadata.studio_key) {
+            navigate("/setup");
+          } else if (metadata.role === "staff" || metadata.role === "mechanic" || metadata.role === "manager") {
+            navigate("/staff-onboarding");
+          } else {
+            navigate("/setup");
+          }
+          return;
+        }
 
-        // Check if pending approval
-        if (profileData?.status === "pending" && profileData?.role !== "owner") {
+        toast({ title: "Welcome back!", description: "You have been logged in successfully." });
+
+        // Pending approval
+        if (profileData.status === "pending" && profileData.role !== "owner") {
           navigate("/pending-approval");
           return;
         }
 
         // Route based on role
-        const role = (profileData?.role as string) || "staff";
-        switch (role) {
+        switch (profileData.role) {
           case "owner":
             navigate("/dashboard");
             break;
           case "mechanic":
             navigate("/mechanic");
             break;
-          case "manager":
           case "staff":
           default:
             navigate("/staff");
