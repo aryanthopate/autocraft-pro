@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -203,6 +204,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex-1" />
+          <NotificationBell />
         </header>
 
         {/* Page content */}

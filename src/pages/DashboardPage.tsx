@@ -34,6 +34,7 @@ import { JobCard } from "@/components/mechanic/JobCard";
 import { JobWorkArea } from "@/components/mechanic/JobWorkArea";
 import { useJobWorkbench } from "@/hooks/useJobWorkbench";
 import { cn } from "@/lib/utils";
+import { AssignmentRequestsCard } from "@/components/dashboard/AssignmentRequestsCard";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -314,6 +315,9 @@ function OwnerDashboardView() {
         {studio?.id && <RevenueChart studioId={studio.id} />}
         {studio?.id && <StaffPerformanceCard studioId={studio.id} />}
       </div>
+
+      {/* Assignment Requests */}
+      <AssignmentRequestsCard />
 
       {/* Action Items & Recent Jobs */}
       <div className="grid gap-6 lg:grid-cols-2">

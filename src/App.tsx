@@ -29,6 +29,8 @@ import AdminSignUpPage from "./pages/AdminSignUpPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+
+const TrackJobPage = lazy(() => import("./pages/TrackJobPage"));
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminProtectedRoute } from "./components/auth/AdminProtectedRoute";
 
@@ -66,6 +68,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/admin-forgot-password" element={<ForgotPasswordPage isAdmin />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/track" element={<TrackJobPage />} />
             
             {/* Protected routes - Owner Dashboard */}
             <Route path="/dashboard" element={

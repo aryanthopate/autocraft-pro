@@ -283,6 +283,71 @@ export type Database = {
           },
         ]
       }
+      job_assignment_requests: {
+        Row: {
+          created_at: string
+          denial_reason: string | null
+          id: string
+          job_id: string
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          studio_id: string
+        }
+        Insert: {
+          created_at?: string
+          denial_reason?: string | null
+          id?: string
+          job_id: string
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          studio_id: string
+        }
+        Update: {
+          created_at?: string
+          denial_reason?: string | null
+          id?: string
+          job_id?: string
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          studio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_assignment_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_assignment_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_assignment_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_assignment_requests_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_condition_media: {
         Row: {
           created_at: string | null
@@ -585,6 +650,57 @@ export type Database = {
           },
           {
             foreignKeyName: "jobs_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          data: Json | null
+          id: string
+          message: string | null
+          read: boolean
+          recipient_id: string
+          studio_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message?: string | null
+          read?: boolean
+          recipient_id: string
+          studio_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message?: string | null
+          read?: boolean
+          recipient_id?: string
+          studio_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_studio_id_fkey"
             columns: ["studio_id"]
             isOneToOne: false
             referencedRelation: "studios"

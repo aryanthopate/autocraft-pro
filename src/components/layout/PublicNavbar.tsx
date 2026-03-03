@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/features", label: "Features" },
+  { href: "/track", label: "Track Vehicle" },
 ];
 
 export function PublicNavbar() {
