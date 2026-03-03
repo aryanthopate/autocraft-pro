@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { JoinStudioCard } from "@/components/staff/JoinStudioCard";
 
 export default function StaffOnboardingPage() {
-  const { user, profile, loading, signOut, isPending } = useAuth();
+  const { user, profile, loading, signOut, isPending, getDashboardRoute } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,10 +23,10 @@ export default function StaffOnboardingPage() {
       if (isPending) {
         navigate("/pending-approval");
       } else if (profile.status === "approved") {
-        navigate("/dashboard");
+        navigate(getDashboardRoute());
       }
     }
-  }, [user, profile, loading, isPending, navigate]);
+  }, [user, profile, loading, isPending, navigate, getDashboardRoute]);
 
   const handleSignOut = async () => {
     await signOut();

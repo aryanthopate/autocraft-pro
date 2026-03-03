@@ -118,7 +118,7 @@ export default function LoginPage() {
         }
 
         // Route based on role
-        const role = profileData?.role || "staff";
+        const role = (profileData?.role as string) || "staff";
         switch (role) {
           case "owner":
             navigate("/dashboard");
@@ -126,6 +126,7 @@ export default function LoginPage() {
           case "mechanic":
             navigate("/mechanic");
             break;
+          case "manager":
           case "staff":
           default:
             navigate("/staff");
