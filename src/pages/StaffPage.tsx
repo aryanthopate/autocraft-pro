@@ -10,8 +10,9 @@ import {
   Phone,
   Clock,
   CheckCircle2,
-  XCircle,
   Shield,
+  Wrench,
+  Users,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,10 +25,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { StaffPermissionsDialog } from "@/components/staff/StaffPermissionsDialog";
+import { cn } from "@/lib/utils";
 
 interface StaffMember {
   id: string;
@@ -35,11 +45,16 @@ interface StaffMember {
   full_name: string;
   email: string;
   phone: string | null;
-  role: "owner" | "staff" | "mechanic";
+  role: "owner" | "staff" | "mechanic" | "admin";
   status: "pending" | "approved" | "rejected";
   permissions: Record<string, boolean>;
   created_at: string;
 }
+
+const ROLE_OPTIONS = [
+  { value: "staff", label: "Staff", icon: Users, description: "General studio operations & management" },
+  { value: "mechanic", label: "Mechanic", icon: Wrench, description: "Detailing & hands-on work" },
+] as const;
 
 export default function StaffPage() {
   const { studio } = useAuth();
@@ -49,16 +64,15 @@ export default function StaffPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [selectedStaffForPermissions, setSelectedStaffForPermissions] = useState<StaffMember | null>(null);
+  // Track selected role for each pending member
+  const [pendingRoles, setPendingRoles] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (studio?.id) {
-      fetchStaff();
-    }
+    if (studio?.id) fetchStaff();
   }, [studio?.id]);
 
   const fetchStaff = async () => {
     if (!studio?.id) return;
-    
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -70,38 +84,62 @@ export default function StaffPage() {
       setStaff((data || []) as unknown as StaffMember[]);
     } catch (error) {
       console.error("Error fetching staff:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not load staff members.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Could not load staff members." });
     } finally {
       setLoading(false);
     }
   };
 
-  const updateStaffStatus = async (profileId: string, status: "approved" | "rejected") => {
+  const approveWithRole = async (profileId: string, role: string) => {
+    // Validate role against DB enum
+    const validRole = (role === "staff" || role === "mechanic") ? role : "staff";
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ status })
+        .update({ status: "approved", role: validRole as "staff" | "mechanic" })
         .eq("id", profileId);
 
       if (error) throw error;
 
       toast({
-        title: status === "approved" ? "Staff approved" : "Staff rejected",
-        description: `Staff member has been ${status}.`,
+        title: "Staff approved!",
+        description: `Approved as ${validRole}. They can now access the dashboard.`,
       });
-
       fetchStaff();
     } catch (error) {
-      console.error("Error updating staff:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not update staff status.",
-      });
+      console.error("Error approving staff:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not approve staff." });
+    }
+  };
+
+  const rejectStaff = async (profileId: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: "rejected" })
+        .eq("id", profileId);
+
+      if (error) throw error;
+      toast({ title: "Staff rejected" });
+      fetchStaff();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not reject staff." });
+    }
+  };
+
+  const changeRole = async (profileId: string, newRole: string) => {
+    const validRole = (newRole === "staff" || newRole === "mechanic") ? newRole : "staff";
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role: validRole as "staff" | "mechanic" })
+        .eq("id", profileId);
+
+      if (error) throw error;
+      toast({ title: "Role updated", description: `Changed to ${validRole}` });
+      fetchStaff();
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Could not update role." });
     }
   };
 
@@ -112,18 +150,13 @@ export default function StaffPage() {
 
   const pendingStaff = filteredStaff.filter((m) => m.status === "pending");
   const approvedStaff = filteredStaff.filter((m) => m.status === "approved");
-  const rejectedStaff = filteredStaff.filter((m) => m.status === "rejected");
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="outline" className="badge-pending">Pending</Badge>;
-      case "approved":
-        return <Badge variant="outline" className="badge-active">Active</Badge>;
-      case "rejected":
-        return <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30">Rejected</Badge>;
-      default:
-        return null;
+  const getRoleBadgeStyle = (role: string) => {
+    switch (role) {
+      case "owner": return "bg-primary/15 text-primary border-primary/30";
+      case "manager": return "bg-blue-500/15 text-blue-500 border-blue-500/30";
+      case "mechanic": return "bg-racing/15 text-racing border-racing/30";
+      default: return "bg-muted text-muted-foreground";
     }
   };
 
@@ -134,33 +167,32 @@ export default function StaffPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <div>
             <h1 className="font-display text-3xl font-bold">Staff Management</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your team members and approve new requests
-            </p>
+            <p className="text-muted-foreground mt-1">Manage team members, assign roles, and control permissions</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              {approvedStaff.length} active
+            </Badge>
+            {pendingStaff.length > 0 && (
+              <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30 text-xs">
+                {pendingStaff.length} pending
+              </Badge>
+            )}
           </div>
         </motion.div>
 
         {/* Studio Key Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Card className="border-primary/20 bg-primary/5">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Share this key with staff to let them join your studio
-                  </p>
-                  <p className="font-mono text-2xl font-bold tracking-wider">
-                    {studio?.join_key || "Loading..."}
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-1">Share this key with staff to let them join your studio</p>
+                  <p className="font-mono text-2xl font-bold tracking-wider">{studio?.join_key || "Loading..."}</p>
                 </div>
                 <Button
                   variant="outline"
@@ -187,14 +219,10 @@ export default function StaffPage() {
           />
         </div>
 
-        {/* Pending Requests */}
+        {/* Pending Requests — with Role Assignment */}
         {pendingStaff.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Card>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <Card className="border-warning/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-warning" />
@@ -206,46 +234,76 @@ export default function StaffPage() {
                   {pendingStaff.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center justify-between p-4 rounded-lg border border-border bg-card"
+                      className="p-4 rounded-xl border border-border bg-card hover:border-primary/20 transition-colors"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
-                          <span className="text-sm font-medium text-warning">
+                      <div className="flex items-start gap-4">
+                        {/* Avatar */}
+                        <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-lg font-bold text-warning">
                             {member.full_name.charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <div>
-                          <p className="font-medium">{member.full_name}</p>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-lg">{member.full_name}</p>
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
                             <span className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
+                              <Mail className="h-3.5 w-3.5" />
                               {member.email}
                             </span>
                             {member.phone && (
                               <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
+                                <Phone className="h-3.5 w-3.5" />
                                 {member.phone}
                               </span>
                             )}
                           </div>
+
+                          {/* Role selector + actions */}
+                          <div className="flex flex-wrap items-center gap-3 mt-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">Assign as:</span>
+                              <Select
+                                value={pendingRoles[member.id] || "staff"}
+                                onValueChange={(v) => setPendingRoles(prev => ({ ...prev, [member.id]: v }))}
+                              >
+                                <SelectTrigger className="w-[160px] h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ROLE_OPTIONS.map((role) => (
+                                    <SelectItem key={role.value} value={role.value}>
+                                      <div className="flex items-center gap-2">
+                                        <role.icon className="h-4 w-4" />
+                                        <span>{role.label}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="flex items-center gap-2 ml-auto">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-destructive hover:bg-destructive/10 border-destructive/30"
+                                onClick={() => rejectStaff(member.id)}
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Reject
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => approveWithRole(member.id, pendingRoles[member.id] || "staff")}
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Approve
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => updateStaffStatus(member.id, "rejected")}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => updateStaffStatus(member.id, "approved")}
-                        >
-                          <Check className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
                       </div>
                     </div>
                   ))}
@@ -256,50 +314,42 @@ export default function StaffPage() {
         )}
 
         {/* Active Staff */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-success" />
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
                 Active Staff ({approvedStaff.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               {approvedStaff.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <UserPlus className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No active staff members</p>
-                  <p className="text-sm mt-1">
-                    Share your studio key to invite team members
-                  </p>
+                <div className="text-center py-12 text-muted-foreground">
+                  <UserPlus className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                  <p className="font-medium text-lg">No active staff members</p>
+                  <p className="text-sm mt-1">Share your studio key to invite team members</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {approvedStaff.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center justify-between p-4 rounded-lg border border-border"
+                      className="flex items-center justify-between p-4 rounded-xl border border-border hover:border-primary/20 transition-colors"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary">
+                        <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-bold text-primary">
                             {member.full_name.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="font-medium">{member.full_name}</p>
-                            <Badge variant="outline" className="text-xs capitalize">
+                            <p className="font-semibold">{member.full_name}</p>
+                            <Badge variant="outline" className={cn("text-xs capitalize", getRoleBadgeStyle(member.role))}>
                               {member.role}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {member.email}
-                          </p>
+                          <p className="text-sm text-muted-foreground">{member.email}</p>
                         </div>
                       </div>
                       {member.role !== "owner" && (
@@ -309,7 +359,7 @@ export default function StaffPage() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="w-52">
                             <DropdownMenuItem
                               onClick={() => {
                                 setSelectedStaffForPermissions(member);
@@ -319,25 +369,22 @@ export default function StaffPage() {
                               <Shield className="h-4 w-4 mr-2" />
                               Manage Permissions
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {ROLE_OPTIONS.filter(r => r.value !== member.role).map((role) => (
+                              <DropdownMenuItem
+                                key={role.value}
+                                onClick={() => changeRole(member.id, role.value)}
+                              >
+                                <role.icon className="h-4 w-4 mr-2" />
+                                Switch to {role.label}
+                              </DropdownMenuItem>
+                            ))}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={async () => {
-                                const newRole = member.role === "mechanic" ? "staff" : "mechanic";
-                                const { error } = await supabase
-                                  .from("profiles")
-                                  .update({ role: newRole })
-                                  .eq("id", member.id);
-                                if (!error) {
-                                  toast({ title: "Role updated", description: `Changed to ${newRole}` });
-                                  fetchStaff();
-                                }
-                              }}
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => rejectStaff(member.id)}
                             >
-                              Switch to {member.role === "mechanic" ? "Staff" : "Mechanic"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => updateStaffStatus(member.id, "rejected")}
-                            >
+                              <X className="h-4 w-4 mr-2" />
                               Remove Access
                             </DropdownMenuItem>
                           </DropdownMenuContent>

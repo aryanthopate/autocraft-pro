@@ -372,9 +372,10 @@ function OwnerDashboardView() {
                           onClick={async () => { await supabase.from("profiles").update({ status: "rejected" }).eq("id", member.id); fetchOwnerStats(); toast({ title: "Staff rejected" }); }}>
                           <X className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" className="h-8"
-                          onClick={async () => { await supabase.from("profiles").update({ status: "approved" }).eq("id", member.id); fetchOwnerStats(); toast({ title: "Staff approved!" }); }}>
-                          <Check className="h-4 w-4 mr-1" /> Approve
+                        <Button size="sm" className="h-8" asChild>
+                          <a href="/dashboard/staff">
+                            <Check className="h-4 w-4 mr-1" /> Review & Approve
+                          </a>
                         </Button>
                       </div>
                     </div>
