@@ -541,6 +541,17 @@ export default function JobDetailPage() {
 
           {isOwner && (
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const trackUrl = `${window.location.origin}/track`;
+                  navigator.clipboard.writeText(trackUrl);
+                  toast({ title: "Tracking link copied!", description: "Share this with the customer to track their vehicle." });
+                }}
+              >
+                Copy Tracking Link
+              </Button>
               <Select value={job.status} onValueChange={handleStatusChange} disabled={updating}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue />

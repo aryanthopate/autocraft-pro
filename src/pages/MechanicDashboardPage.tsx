@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { JobCard } from "@/components/mechanic/JobCard";
 import { JobWorkArea } from "@/components/mechanic/JobWorkArea";
 import { useJobWorkbench } from "@/hooks/useJobWorkbench";
+import { MechanicJobQueue } from "@/components/mechanic/MechanicJobQueue";
 import { cn } from "@/lib/utils";
 
 export default function MechanicDashboardPage() {
@@ -134,8 +135,12 @@ export default function MechanicDashboardPage() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="lg:col-span-4"
+            className="lg:col-span-4 space-y-4"
           >
+            {/* Available Jobs (unassigned) */}
+            <MechanicJobQueue />
+
+            {/* My Assigned Jobs */}
             <Card className="h-full">
               <CardHeader className="pb-3 bg-gradient-to-r from-racing/5 to-transparent">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -149,7 +154,7 @@ export default function MechanicDashboardPage() {
                   <div className="p-8 text-center text-muted-foreground">
                     <Wrench className="h-12 w-12 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">No jobs assigned</p>
-                    <p className="text-sm mt-1">Check back soon!</p>
+                    <p className="text-sm mt-1">Pick up jobs from the queue above!</p>
                   </div>
                 ) : (
                   <div className="divide-y max-h-[500px] overflow-y-auto">
