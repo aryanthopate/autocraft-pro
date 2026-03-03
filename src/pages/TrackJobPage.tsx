@@ -128,8 +128,8 @@ export default function TrackJobPage() {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-racing/10 flex items-center justify-center">
-            <Car className="h-5 w-5 text-racing" />
+          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Car className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h1 className="font-display text-lg font-bold">DetailFlow</h1>
@@ -143,8 +143,8 @@ export default function TrackJobPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Card>
               <CardHeader className="text-center pb-2">
-                <div className="h-16 w-16 rounded-2xl bg-racing/10 flex items-center justify-center mx-auto mb-3">
-                  <Search className="h-8 w-8 text-racing" />
+                <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                   <Search className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle className="text-xl">Track Your Vehicle</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -184,7 +184,7 @@ export default function TrackJobPage() {
                   </div>
                 )}
 
-                <Button className="w-full bg-racing hover:bg-racing/90" onClick={handleSearch} disabled={loading}>
+                <Button className="w-full" onClick={handleSearch} disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
                   Track My Vehicle
                 </Button>

@@ -34,18 +34,8 @@ const item = {
 
 export function SocialProofStrip() {
   return (
-    <section className="py-24 relative overflow-hidden">
-      <div className="section-divider mb-20" />
-
-      {/* Red ambient glow */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[80%] opacity-[0.06] pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse at center, hsl(var(--racing-red) / 0.4) 0%, transparent 70%)",
-        }}
-      />
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
+    <section className="py-20 lg:py-28 bg-secondary/30">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           className="text-center mb-14"
           initial={{ opacity: 0, y: 20 }}
@@ -53,26 +43,19 @@ export function SocialProofStrip() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <div className="flex items-center justify-center gap-1 mb-4">
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, type: "spring", stiffness: 200 }}
-              >
-                <Star className="h-5 w-5 fill-racing text-racing" />
-              </motion.div>
-            ))}
-          </div>
-          <p className="text-muted-foreground text-sm">
-            Trusted by <span className="text-racing font-semibold">500+</span> studios worldwide
+          <span className="inline-block text-primary text-sm font-semibold uppercase tracking-widest mb-3">
+            Testimonials
+          </span>
+          <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+            Trusted by <span className="text-gradient-primary">Garages</span>, Proven by Performance
+          </h2>
+          <p className="text-muted-foreground text-base max-w-lg mx-auto">
+            Join 500+ studios that rely on DetailFlow every day.
           </p>
         </motion.div>
 
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto"
           variants={container}
           initial="hidden"
           whileInView="show"
@@ -82,28 +65,27 @@ export function SocialProofStrip() {
             <motion.blockquote
               key={t.name}
               variants={item}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="relative p-6 rounded-xl border border-border bg-card/60 backdrop-blur-sm group hover:border-racing/30 transition-all duration-300"
+              className="relative p-6 rounded-xl border border-border bg-card shadow-sm"
             >
-              {/* Hover glow */}
-              <div
-                className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                style={{
-                  background: "radial-gradient(ellipse at 50% 100%, hsl(var(--racing-red) / 0.06) 0%, transparent 70%)",
-                }}
-              />
-              <Quote className="absolute top-4 right-4 h-6 w-6 text-racing/15 group-hover:text-racing/30 transition-colors" />
-              <div className="flex gap-0.5 mb-4">
+              <Quote className="absolute top-4 right-4 h-5 w-5 text-primary/10" />
+              <div className="flex gap-0.5 mb-3">
                 {[...Array(t.rating)].map((_, i) => (
-                  <Star key={i} className="h-3.5 w-3.5 fill-racing/60 text-racing/60" />
+                  <Star key={i} className="h-4 w-4 fill-primary/70 text-primary/70" />
                 ))}
               </div>
-              <p className="relative text-sm text-foreground/90 leading-relaxed mb-5 italic">
+              <p className="text-sm text-foreground leading-relaxed mb-5">
                 &ldquo;{t.quote}&rdquo;
               </p>
-              <footer className="relative">
-                <p className="text-sm font-semibold font-display">{t.name}</p>
-                <p className="text-xs text-muted-foreground">{t.role}</p>
+              <footer>
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                    {t.name[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold font-display">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  </div>
+                </div>
               </footer>
             </motion.blockquote>
           ))}

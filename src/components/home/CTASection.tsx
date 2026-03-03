@@ -1,109 +1,65 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, Zap } from "lucide-react";
+import { ArrowRight, Shield, Headphones, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const perks = [
+  { icon: Database, title: "Data Migration", desc: "We move your existing data for free" },
+  { icon: Headphones, title: "Live Support", desc: "Chat with our team in under 2 minutes" },
+  { icon: Shield, title: "Help Center", desc: "Step-by-step guides and video tutorials" },
+];
 
 export function CTASection() {
   return (
-    <section className="py-24 lg:py-32">
+    <section className="py-20 lg:py-28">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Support perks */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-20"
+        >
+          {perks.map((perk) => (
+            <div key={perk.title} className="text-center p-6 rounded-xl border border-border bg-card">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+                <perk.icon className="h-6 w-6" />
+              </div>
+              <h3 className="font-display font-semibold mb-1">{perk.title}</h3>
+              <p className="text-sm text-muted-foreground">{perk.desc}</p>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Final CTA */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="relative rounded-2xl border border-racing/20 overflow-hidden"
+          className="relative rounded-2xl border border-primary/20 bg-primary/[0.03] overflow-hidden"
         >
-          {/* Red glow background */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "radial-gradient(ellipse 80% 60% at 50% 100%, hsl(var(--racing-red) / 0.12) 0%, transparent 60%)",
-            }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "radial-gradient(ellipse 60% 40% at 50% 0%, hsl(var(--primary) / 0.06) 0%, transparent 60%)",
-            }}
-          />
-          <div className="absolute inset-0 bg-card/80" />
-
-          {/* Grid pattern */}
-          <div
-            className="absolute inset-0 opacity-[0.02]"
-            style={{
-              backgroundImage: `linear-gradient(hsl(var(--racing-red)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--racing-red)) 1px, transparent 1px)`,
-              backgroundSize: "40px 40px",
-            }}
-          />
-
-          {/* Racing stripe accent */}
-          <motion.div
-            className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-racing to-transparent"
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1, delay: 0.3 }}
-          />
-
-          <div className="relative px-8 py-20 sm:px-16 sm:py-24 text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 150 }}
-              className="inline-flex items-center gap-2 rounded-full border border-racing/20 bg-racing/5 px-4 py-1.5 text-xs font-medium text-racing mb-6"
-            >
-              <Zap className="h-3 w-3 fill-racing" />
-              No credit card required
-            </motion.div>
-
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4"
-            >
-              Ready to Run Your Studio{" "}
-              <span className="text-gradient-racing">Like a Pro?</span>
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="text-lg text-muted-foreground max-w-xl mx-auto mb-10"
-            >
+          <div className="px-8 py-16 sm:px-16 sm:py-20 text-center">
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
+              Experience the #1 Auto{" "}
+              <span className="text-gradient-primary">Detailing Software</span>
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
               Join hundreds of detailing professionals who trust DetailFlow to
               deliver flawless results, every time.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.5 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4"
-            >
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                <Button
-                  size="xl"
-                  asChild
-                  className="group bg-gradient-to-r from-racing to-racing-dark text-white hover:opacity-90 shadow-xl shadow-racing/25 font-semibold"
-                >
-                  <Link to="/signup">
-                    Start Your Free Trial
-                    <ArrowRight className="ml-1 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-                <Button variant="heroOutline" size="lg" asChild className="border-racing/30 hover:border-racing/60 hover:bg-racing/5">
-                  <Link to="/login">Sign In</Link>
-                </Button>
-              </motion.div>
-            </motion.div>
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Button size="lg" asChild className="font-semibold shadow-lg shadow-primary/20">
+                <Link to="/signup">
+                  Start Your Free Trial
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/login">Sign In</Link>
+              </Button>
+            </div>
           </div>
         </motion.div>
       </div>
