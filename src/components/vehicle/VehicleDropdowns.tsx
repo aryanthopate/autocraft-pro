@@ -138,7 +138,6 @@ export function VehicleDropdowns({
   }, [isCustomModel, isCustomMake]);
 
   const handleMakeSelect = (value: string) => {
-    console.log("handleMakeSelect called with:", value);
     if (value === "__custom__") {
       setIsCustomMake(true);
       onMakeChange("");
