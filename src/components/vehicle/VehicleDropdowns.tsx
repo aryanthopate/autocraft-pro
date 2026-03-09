@@ -155,7 +155,6 @@ export function VehicleDropdowns({
   };
 
   const handleModelSelect = (value: string) => {
-    console.log("handleModelSelect called with:", value);
     if (value === "__custom__") {
       setIsCustomModel(true);
       setIsCustomYear(true);
