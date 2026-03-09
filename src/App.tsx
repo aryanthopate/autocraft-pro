@@ -31,6 +31,10 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 const TrackJobPage = lazy(() => import("./pages/TrackJobPage"));
+const EstimatesPage = lazy(() => import("./pages/EstimatesPage"));
+const InventoryPage = lazy(() => import("./pages/InventoryPage"));
+const ActivityLogPage = lazy(() => import("./pages/ActivityLogPage"));
+const CustomerPortalPage = lazy(() => import("./pages/CustomerPortalPage"));
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminProtectedRoute } from "./components/auth/AdminProtectedRoute";
 
@@ -69,6 +73,7 @@ const App = () => (
             <Route path="/admin-forgot-password" element={<ForgotPasswordPage isAdmin />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/track" element={<TrackJobPage />} />
+            <Route path="/portal" element={<CustomerPortalPage />} />
             
             {/* Protected routes - Owner Dashboard */}
             <Route path="/dashboard" element={
@@ -114,6 +119,21 @@ const App = () => (
             <Route path="/dashboard/invoices" element={
               <ProtectedRoute requireOwner>
                 <InvoicesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/estimates" element={
+              <ProtectedRoute>
+                <EstimatesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/inventory" element={
+              <ProtectedRoute>
+                <InventoryPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/activity" element={
+              <ProtectedRoute requireOwner>
+                <ActivityLogPage />
               </ProtectedRoute>
             } />
             

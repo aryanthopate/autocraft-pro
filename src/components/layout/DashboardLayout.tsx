@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Car, ClipboardList, FileText, Settings,
   Menu, X, LogOut, Key, Sparkles, Wrench, Sun, Moon,
+  Package, Calculator, Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,10 +35,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       return [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: "Jobs", href: "/dashboard/jobs", icon: ClipboardList },
+        { name: "Estimates", href: "/dashboard/estimates", icon: Calculator },
         { name: "Customers", href: "/dashboard/customers", icon: Users },
         { name: "Vehicles", href: "/dashboard/vehicles", icon: Car },
+        { name: "Inventory", href: "/dashboard/inventory", icon: Package },
         { name: "Staff", href: "/dashboard/staff", icon: Users },
         { name: "Invoices", href: "/dashboard/invoices", icon: FileText },
+        { name: "Activity", href: "/dashboard/activity", icon: Activity },
         { name: "Settings", href: "/dashboard/settings", icon: Settings },
       ];
     }

@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          studio_id: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          studio_id: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          studio_id?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admins: {
         Row: {
           created_at: string
@@ -212,6 +263,258 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "customers_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_items: {
+        Row: {
+          created_at: string
+          description: string
+          estimate_id: string
+          id: string
+          quantity: number | null
+          total: number
+          unit_price: number
+          zone_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          estimate_id: string
+          id?: string
+          quantity?: number | null
+          total?: number
+          unit_price?: number
+          zone_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          estimate_id?: string
+          id?: string
+          quantity?: number | null
+          total?: number
+          unit_price?: number
+          zone_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          car_id: string
+          converted_job_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          grand_total: number | null
+          gst_amount: number | null
+          gst_percentage: number | null
+          id: string
+          notes: string | null
+          status: string
+          studio_id: string
+          total_amount: number | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          car_id: string
+          converted_job_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          grand_total?: number | null
+          gst_amount?: number | null
+          gst_percentage?: number | null
+          id?: string
+          notes?: string | null
+          status?: string
+          studio_id: string
+          total_amount?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          car_id?: string
+          converted_job_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          grand_total?: number | null
+          gst_amount?: number | null
+          gst_percentage?: number | null
+          id?: string
+          notes?: string | null
+          status?: string
+          studio_id?: string
+          total_amount?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_car_id_fkey"
+            columns: ["car_id"]
+            isOneToOne: false
+            referencedRelation: "cars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_converted_job_id_fkey"
+            columns: ["converted_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          category: string
+          cost_per_unit: number | null
+          created_at: string
+          id: string
+          min_stock_level: number | null
+          name: string
+          notes: string | null
+          quantity: number
+          sku: string | null
+          studio_id: string
+          supplier: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          min_stock_level?: number | null
+          name: string
+          notes?: string | null
+          quantity?: number
+          sku?: string | null
+          studio_id: string
+          supplier?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          min_stock_level?: number | null
+          name?: string
+          notes?: string | null
+          quantity?: number
+          sku?: string | null
+          studio_id?: string
+          supplier?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transactions: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          job_id: string | null
+          notes: string | null
+          performed_by: string | null
+          quantity: number
+          studio_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          job_id?: string | null
+          notes?: string | null
+          performed_by?: string | null
+          quantity: number
+          studio_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          job_id?: string | null
+          notes?: string | null
+          performed_by?: string | null
+          quantity?: number
+          studio_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_studio_id_fkey"
             columns: ["studio_id"]
             isOneToOne: false
             referencedRelation: "studios"
