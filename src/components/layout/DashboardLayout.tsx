@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Car, ClipboardList, FileText, Settings,
   Menu, X, LogOut, Key, Sparkles, Wrench, Sun, Moon,
+  Package, Calculator, Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
