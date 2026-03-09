@@ -671,6 +671,9 @@ export default function JobDetailPage() {
           onOpenChange={setTransportDialogOpen}
           jobId={job.id}
           type={transportType}
+          carInfo={{ make: job.car?.make || "", model: job.car?.model || "", color: job.car?.color }}
+          customerName={job.customer?.name || ""}
+          profileId={profile?.id || ""}
           onSuccess={() => { fetchTransportRecords(); setTransportDialogOpen(false); }}
         />
       )}
