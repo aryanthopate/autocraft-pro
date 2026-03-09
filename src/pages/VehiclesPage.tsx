@@ -134,6 +134,7 @@ export default function VehiclesPage() {
         color: formData.color || null,
         license_plate: formData.license_plate?.toUpperCase() || null,
         registration_number: formData.license_plate?.toUpperCase() || null,
+        vehicle_type: formData.vehicle_type || "sedan",
       });
 
       if (error) throw error;
