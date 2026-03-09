@@ -73,6 +73,7 @@ const App = () => (
             <Route path="/admin-forgot-password" element={<ForgotPasswordPage isAdmin />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/track" element={<TrackJobPage />} />
+            <Route path="/portal" element={<CustomerPortalPage />} />
             
             {/* Protected routes - Owner Dashboard */}
             <Route path="/dashboard" element={
