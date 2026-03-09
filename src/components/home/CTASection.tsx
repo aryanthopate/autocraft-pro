@@ -1,64 +1,54 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, Shield, Headphones, Database } from "lucide-react";
+import { ArrowRight, Zap, Headphones, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const perks = [
-  { icon: Database, title: "Data Migration", desc: "We move your existing data for free" },
-  { icon: Headphones, title: "Live Support", desc: "Chat with our team in under 2 minutes" },
-  { icon: Shield, title: "Help Center", desc: "Step-by-step guides and tutorials" },
+  { icon: Zap, text: "Setup in under 5 minutes" },
+  { icon: Headphones, text: "Live chat support" },
+  { icon: Shield, text: "Free data migration" },
 ];
 
 export function CTASection() {
   return (
-    <section className="py-14 lg:py-20">
+    <section className="py-16 lg:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Support perks */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mb-14"
-        >
-          {perks.map((perk) => (
-            <div key={perk.title} className="text-center p-5 rounded-xl border border-border bg-card">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
-                <perk.icon className="h-5 w-5" />
-              </div>
-              <h3 className="font-semibold text-sm mb-1">{perk.title}</h3>
-              <p className="text-xs text-muted-foreground">{perk.desc}</p>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Final CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative rounded-2xl border border-primary/20 bg-primary/[0.03] overflow-hidden"
+          className="relative rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] via-card to-accent/[0.04] overflow-hidden"
         >
-          <div className="px-8 py-12 sm:px-16 sm:py-16 text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-              Experience the #1 Auto{" "}
-              <span className="text-gradient-primary">Detailing Software</span>
+          {/* Subtle grid pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.2)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.2)_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
+
+          <div className="relative px-8 py-14 sm:px-16 sm:py-20 text-center">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
+              Ready to Run Your Shop{" "}
+              <span className="text-gradient-primary">Like a Pro?</span>
             </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto mb-6">
-              Join hundreds of professionals who trust DetailFlow to
-              deliver flawless results, every time.
+            <p className="text-muted-foreground max-w-lg mx-auto mb-8 text-sm sm:text-base">
+              Join hundreds of professionals who trust DetailFlow to deliver flawless results, every time.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" asChild className="font-semibold shadow-lg shadow-primary/20">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
+              <Button size="lg" asChild className="font-semibold shadow-lg shadow-primary/25 h-12 px-8 text-base">
                 <Link to="/signup">
                   Start Your Free Trial
-                  <ArrowRight className="ml-1 h-4 w-4" />
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" asChild>
+              <Button variant="outline" size="lg" asChild className="h-12 px-8 text-base">
                 <Link to="/login">Sign In</Link>
               </Button>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-6">
+              {perks.map((perk) => (
+                <span key={perk.text} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <perk.icon className="h-4 w-4 text-primary" />
+                  {perk.text}
+                </span>
+              ))}
             </div>
           </div>
         </motion.div>

@@ -1,79 +1,63 @@
 import { motion } from "framer-motion";
-import { ClipboardCheck, Car, Wrench, CheckCircle2, Camera, Send } from "lucide-react";
+import { ClipboardCheck, Car, Wrench, Camera, CheckCircle2, Send } from "lucide-react";
 
 const steps = [
-  { icon: ClipboardCheck, title: "Intake", desc: "Log vehicle details & snap condition photos" },
-  { icon: Car, title: "Zone Map", desc: "Select service zones on the 3D model" },
-  { icon: Wrench, title: "Execute", desc: "Mechanics work through zone checklists" },
-  { icon: Camera, title: "Document", desc: "Before & after media for every zone" },
-  { icon: CheckCircle2, title: "QA Review", desc: "Owner inspects and approves work" },
-  { icon: Send, title: "Deliver", desc: "Invoice, notify customer, and release" },
+  { icon: ClipboardCheck, title: "Intake", desc: "Log vehicle & snap condition photos", color: "bg-primary" },
+  { icon: Car, title: "Zone Map", desc: "Assign services on the 3D model", color: "bg-accent" },
+  { icon: Wrench, title: "Execute", desc: "Mechanics work through checklists", color: "bg-warning" },
+  { icon: Camera, title: "Document", desc: "Before & after media per zone", color: "bg-success" },
+  { icon: CheckCircle2, title: "QA Review", desc: "Owner inspects & approves work", color: "bg-racing" },
+  { icon: Send, title: "Deliver", desc: "Invoice, notify, and release", color: "bg-primary" },
 ];
-
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 16, scale: 0.97 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35, ease: "easeOut" as const } },
-};
 
 export function ProcessTimeline() {
   return (
-    <section className="py-14 lg:py-20">
+    <section className="py-16 lg:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="text-center mb-10"
+          className="text-center mb-12"
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
         >
-          <span className="inline-block text-primary text-sm font-semibold uppercase tracking-widest mb-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary uppercase tracking-wider mb-4">
             Workflow
           </span>
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-            From Intake to{" "}
-            <span className="text-gradient-primary">Delivery</span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
+            Six Steps to Perfection
           </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            A battle-tested 6-step workflow designed by detailing professionals.
+          <p className="text-muted-foreground max-w-lg mx-auto text-sm">
+            A battle-tested workflow designed by detailing professionals.
           </p>
         </motion.div>
 
-        <div className="relative">
-          <motion.div
-            className="hidden lg:block absolute top-[48px] left-[8%] right-[8%] h-px bg-border"
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          />
+        <div className="relative max-w-5xl mx-auto">
+          {/* Connecting line */}
+          <div className="hidden lg:block absolute top-12 left-[8%] right-[8%] h-px bg-border" />
 
-          <motion.div
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"
-            variants={container}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-50px" }}
-          >
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {steps.map((step, i) => (
-              <motion.div key={step.title} variants={item} className="group relative">
-                <div className="relative p-4 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all duration-300 h-full text-center">
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-[11px] font-bold shadow-md">
-                    {i + 1}
-                  </div>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary mb-2.5 mx-auto group-hover:bg-primary/15 transition-colors">
+              <motion.div
+                key={step.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06 }}
+                className="relative group"
+              >
+                <div className="text-center p-4 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-md transition-all h-full">
+                  <div className={`relative mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${step.color} text-white shadow-sm`}>
                     <step.icon className="h-4.5 w-4.5" />
+                    <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-card border-2 border-border text-[10px] font-bold text-foreground">
+                      {i + 1}
+                    </span>
                   </div>
-                  <h3 className="text-sm font-semibold mb-1">{step.title}</h3>
+                  <h3 className="text-sm font-bold mb-1">{step.title}</h3>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">{step.desc}</p>
                 </div>
               </motion.div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
