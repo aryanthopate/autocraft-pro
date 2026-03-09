@@ -31,6 +31,10 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 const TrackJobPage = lazy(() => import("./pages/TrackJobPage"));
+const EstimatesPage = lazy(() => import("./pages/EstimatesPage"));
+const InventoryPage = lazy(() => import("./pages/InventoryPage"));
+const ActivityLogPage = lazy(() => import("./pages/ActivityLogPage"));
+const CustomerPortalPage = lazy(() => import("./pages/CustomerPortalPage"));
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminProtectedRoute } from "./components/auth/AdminProtectedRoute";
 
