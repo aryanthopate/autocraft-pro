@@ -121,6 +121,21 @@ const App = () => (
                 <InvoicesPage />
               </ProtectedRoute>
             } />
+            <Route path="/dashboard/estimates" element={
+              <ProtectedRoute>
+                <EstimatesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/inventory" element={
+              <ProtectedRoute>
+                <InventoryPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/activity" element={
+              <ProtectedRoute requireOwner>
+                <ActivityLogPage />
+              </ProtectedRoute>
+            } />
             
             {/* Staff Dashboard */}
             <Route path="/staff" element={
