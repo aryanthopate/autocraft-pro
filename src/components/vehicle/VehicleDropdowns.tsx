@@ -203,8 +203,6 @@ export function VehicleDropdowns({
     }
   };
 
-  // Debug logging
-  console.log("VehicleDropdowns render - make:", make, "availableModels:", availableModels, "isCustomMake:", isCustomMake);
 
   if (loading) {
     return (
