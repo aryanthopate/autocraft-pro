@@ -406,7 +406,7 @@ export default function JobDetailPage() {
                       <Select value={job.assigned_to || ""} onValueChange={handleAssign} disabled={updating}>
                         <SelectTrigger><SelectValue placeholder="Select staff member" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Unassigned</SelectItem>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
                           {staff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
                         </SelectContent>
                       </Select>
