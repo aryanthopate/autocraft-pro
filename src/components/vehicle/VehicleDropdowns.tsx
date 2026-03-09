@@ -86,7 +86,7 @@ export function VehicleDropdowns({
           return;
         }
 
-        console.log("Fetched car models:", data);
+        
         setCarModels(data || []);
       } catch (err) {
         console.error("Error:", err);
@@ -138,7 +138,6 @@ export function VehicleDropdowns({
   }, [isCustomModel, isCustomMake]);
 
   const handleMakeSelect = (value: string) => {
-    console.log("handleMakeSelect called with:", value);
     if (value === "__custom__") {
       setIsCustomMake(true);
       onMakeChange("");
@@ -156,7 +155,6 @@ export function VehicleDropdowns({
   };
 
   const handleModelSelect = (value: string) => {
-    console.log("handleModelSelect called with:", value);
     if (value === "__custom__") {
       setIsCustomModel(true);
       setIsCustomYear(true);
@@ -203,8 +201,6 @@ export function VehicleDropdowns({
     }
   };
 
-  // Debug logging
-  console.log("VehicleDropdowns render - make:", make, "availableModels:", availableModels, "isCustomMake:", isCustomMake);
 
   if (loading) {
     return (

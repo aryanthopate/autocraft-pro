@@ -467,12 +467,22 @@ export default function JobsPage() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Edit Job</DropdownMenuItem>
-                            <DropdownMenuItem>Add Zones</DropdownMenuItem>
-                            <DropdownMenuItem>Upload Media</DropdownMenuItem>
-                            <DropdownMenuItem>Generate Invoice</DropdownMenuItem>
-                          </DropdownMenuContent>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => navigate(`/dashboard/jobs/${job.id}`)}>
+                            Edit Job
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/dashboard/jobs/${job.id}`)}>
+                            View Zones
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/dashboard/jobs/${job.id}`)}>
+                            View Media
+                          </DropdownMenuItem>
+                          {job.status === "completed" && (
+                            <DropdownMenuItem onClick={() => navigate(`/dashboard/invoices`)}>
+                              Generate Invoice
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                     </div>

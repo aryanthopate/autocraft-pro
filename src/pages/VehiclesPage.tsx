@@ -71,6 +71,7 @@ export default function VehiclesPage() {
     year: "",
     color: "",
     license_plate: "",
+    vehicle_type: "sedan",
   });
 
   useEffect(() => {
@@ -133,6 +134,7 @@ export default function VehiclesPage() {
         color: formData.color || null,
         license_plate: formData.license_plate?.toUpperCase() || null,
         registration_number: formData.license_plate?.toUpperCase() || null,
+        vehicle_type: formData.vehicle_type || "sedan",
       });
 
       if (error) throw error;
@@ -149,6 +151,7 @@ export default function VehiclesPage() {
         year: "",
         color: "",
         license_plate: "",
+        vehicle_type: "sedan",
       });
       setIsDialogOpen(false);
       fetchData();
@@ -244,6 +247,26 @@ export default function VehiclesPage() {
                       required
                     />
                   </div>
+                </div>
+                {/* Vehicle Type */}
+                <div className="space-y-2">
+                  <Label>Vehicle Type</Label>
+                  <Select
+                    value={formData.vehicle_type || "sedan"}
+                    onValueChange={(v) => setFormData({ ...formData, vehicle_type: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sedan">Sedan</SelectItem>
+                      <SelectItem value="suv">SUV</SelectItem>
+                      <SelectItem value="hatchback">Hatchback</SelectItem>
+                      <SelectItem value="coupe">Coupe</SelectItem>
+                      <SelectItem value="convertible">Convertible</SelectItem>
+                      <SelectItem value="pickup">Pickup</SelectItem>
+                      <SelectItem value="van">Van</SelectItem>
+                      <SelectItem value="bike">Bike</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

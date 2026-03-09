@@ -465,7 +465,7 @@ function OwnerDashboardView() {
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                { label: "New Job", icon: ClipboardList, href: "/dashboard/jobs" },
+                { label: "Create New Job", icon: ClipboardList, href: "/dashboard/jobs/new" },
                 { label: "Add Customer", icon: Users, href: "/dashboard/customers" },
                 { label: "Register Vehicle", icon: Car, href: "/dashboard/vehicles" },
               ].map((action, i) => (
