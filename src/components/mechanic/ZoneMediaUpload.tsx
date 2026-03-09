@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Upload, X, Loader2, Image as ImageIcon, CheckCircle2 } from "lucide-react";
+import { Camera, Upload, X, Loader2, Image as ImageIcon, CheckCircle2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,6 +23,14 @@ interface ZoneMediaUploadProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface MediaItem {
+  id: string;
+  url: string;
+  stage: string;
+  caption: string | null;
+  created_at: string;
+}
+
 export function ZoneMediaUpload({
   jobId,
   zoneId,
@@ -38,6 +46,32 @@ export function ZoneMediaUpload({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
   const [stage, setStage] = useState<"before" | "after">("before");
+  const [existingMedia, setExistingMedia] = useState<MediaItem[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+
+  useEffect(() => {
+    if (open && jobId && zoneId) {
+      fetchExistingMedia();
+    }
+  }, [open, jobId, zoneId]);
+
+  const fetchExistingMedia = async () => {
+    setLoadingMedia(true);
+    try {
+      const { data, error } = await supabase
+        .from("job_media")
+        .select("id, url, stage, caption, created_at")
+        .eq("job_id", jobId)
+        .eq("zone_id", zoneId)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) setExistingMedia(data);
+    } catch {
+      // silent
+    } finally {
+      setLoadingMedia(false);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,14 +102,14 @@ export function ZoneMediaUpload({
       const path = `${jobId}/${zoneId}/${stage}_${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("car-models")
-        .upload(`job-media/${path}`, selectedFile);
+        .from("job-media")
+        .upload(path, selectedFile);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from("car-models")
-        .getPublicUrl(`job-media/${path}`);
+        .from("job-media")
+        .getPublicUrl(path);
 
       const { error: dbError } = await supabase
         .from("job_media")
@@ -92,12 +126,26 @@ export function ZoneMediaUpload({
       if (dbError) throw dbError;
 
       toast({ title: "Photo uploaded!", description: `${stage} photo saved for ${zoneName}.` });
-      resetAndClose();
+      setPreview(null);
+      setSelectedFile(null);
+      setCaption("");
+      fetchExistingMedia();
     } catch (err) {
       console.error("Upload error:", err);
       toast({ variant: "destructive", title: "Upload failed", description: "Could not upload photo." });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDeleteMedia = async (mediaId: string) => {
+    try {
+      const { error } = await supabase.from("job_media").delete().eq("id", mediaId);
+      if (error) throw error;
+      toast({ title: "Photo removed" });
+      fetchExistingMedia();
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Could not delete photo." });
     }
   };
 
@@ -109,17 +157,70 @@ export function ZoneMediaUpload({
     onOpenChange(false);
   };
 
+  const beforePhotos = existingMedia.filter(m => m.stage === "before");
+  const afterPhotos = existingMedia.filter(m => m.stage === "after");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="h-5 w-5 text-primary" />
-            Upload Photo — {zoneName}
+            Photos — {zoneName}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-5 py-2">
+          {/* Existing Photos Gallery */}
+          {existingMedia.length > 0 && (
+            <div className="space-y-3">
+              {beforePhotos.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Before</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {beforePhotos.map(media => (
+                      <div key={media.id} className="relative group rounded-lg overflow-hidden border aspect-square">
+                        <img src={media.url} alt="Before" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => handleDeleteMedia(media.id)}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {afterPhotos.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">After</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {afterPhotos.map(media => (
+                      <div key={media.id} className="relative group rounded-lg overflow-hidden border aspect-square">
+                        <img src={media.url} alt="After" className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => handleDeleteMedia(media.id)}
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Divider */}
+          {existingMedia.length > 0 && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Add New</span></div>
+            </div>
+          )}
+
           {/* Stage Toggle */}
           <div className="flex gap-2">
             {(["before", "after"] as const).map((s) => (
@@ -163,10 +264,10 @@ export function ZoneMediaUpload({
           ) : (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-40 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-3 hover:border-primary/50 hover:bg-primary/5 transition-all"
+              className="w-full h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
             >
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Upload className="h-6 w-6 text-primary" />
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Upload className="h-5 w-5 text-primary" />
               </div>
               <div className="text-center">
                 <p className="font-medium text-sm">Tap to take photo or upload</p>
@@ -176,34 +277,38 @@ export function ZoneMediaUpload({
           )}
 
           {/* Caption */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Caption (optional)</Label>
-            <Textarea
-              placeholder="Describe what's shown..."
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={2}
-              className="resize-none"
-            />
-          </div>
+          {selectedFile && (
+            <div className="space-y-1.5">
+              <Label className="text-sm">Caption (optional)</Label>
+              <Textarea
+                placeholder="Describe what's shown..."
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={2}
+                className="resize-none"
+              />
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3">
             <Button variant="outline" onClick={resetAndClose} className="flex-1">
-              Cancel
+              {existingMedia.length > 0 ? "Done" : "Cancel"}
             </Button>
-            <Button
-              onClick={handleUpload}
-              disabled={!selectedFile || uploading}
-              className="flex-1 gap-2"
-            >
-              {uploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-              Upload
-            </Button>
+            {selectedFile && (
+              <Button
+                onClick={handleUpload}
+                disabled={uploading}
+                className="flex-1 gap-2"
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                Upload
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

@@ -4,13 +4,14 @@ import {
   Plus,
   Search,
   FileText,
-  DollarSign,
+  IndianRupee,
   Calendar,
   MoreHorizontal,
   Send,
   CheckCircle2,
   Clock,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,7 +19,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +53,14 @@ interface Invoice {
   job?: { id: string; car?: { make: string; model: string } };
 }
 
+interface CompletedJob {
+  id: string;
+  total_price: number | null;
+  customer_id: string;
+  customer?: { id: string; name: string };
+  car?: { make: string; model: string };
+}
+
 export default function InvoicesPage() {
   const { studio } = useAuth();
   const { toast } = useToast();
@@ -52,6 +68,11 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [completedJobs, setCompletedJobs] = useState<CompletedJob[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState("");
+  const [invoiceAmount, setInvoiceAmount] = useState("");
 
   useEffect(() => {
     if (studio?.id) {
@@ -65,11 +86,7 @@ export default function InvoicesPage() {
     try {
       const { data, error } = await supabase
         .from("invoices")
-        .select(`
-          *,
-          customers(name, phone),
-          jobs(id, cars(make, model))
-        `)
+        .select(`*, customers(name, phone), jobs(id, cars(make, model))`)
         .eq("studio_id", studio.id)
         .order("created_at", { ascending: false });
 
@@ -84,27 +101,70 @@ export default function InvoicesPage() {
       setInvoices(invoicesWithRelations);
     } catch (error) {
       console.error("Error fetching invoices:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not load invoices.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Could not load invoices." });
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchCompletedJobs = async () => {
+    if (!studio?.id) return;
+    const { data } = await supabase
+      .from("jobs")
+      .select("id, total_price, customer_id, customers(id, name), cars(make, model)")
+      .eq("studio_id", studio.id)
+      .eq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (data) {
+      setCompletedJobs(data.map((j: any) => ({
+        ...j,
+        customer: j.customers,
+        car: j.cars,
+      })));
+    }
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!studio?.id || !selectedJobId) return;
+    setCreating(true);
+    try {
+      const job = completedJobs.find(j => j.id === selectedJobId);
+      if (!job) throw new Error("Job not found");
+
+      const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
+      const amount = parseFloat(invoiceAmount) || job.total_price || 0;
+
+      const { error } = await supabase.from("invoices").insert({
+        studio_id: studio.id,
+        job_id: selectedJobId,
+        customer_id: job.customer_id,
+        invoice_number: invoiceNumber,
+        amount,
+        status: "draft",
+      });
+
+      if (error) throw error;
+      toast({ title: "Invoice created!", description: `Invoice ${invoiceNumber} created.` });
+      setCreateOpen(false);
+      setSelectedJobId("");
+      setInvoiceAmount("");
+      fetchInvoices();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message || "Could not create invoice." });
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const updateInvoiceStatus = async (invoiceId: string, status: string) => {
     try {
-      const { error } = await supabase
-        .from("invoices")
-        .update({ status })
-        .eq("id", invoiceId);
-
+      const { error } = await supabase.from("invoices").update({ status }).eq("id", invoiceId);
       if (error) throw error;
       toast({ title: "Invoice updated" });
       fetchInvoices();
-    } catch (error) {
+    } catch {
       toast({ variant: "destructive", title: "Error", description: "Could not update invoice." });
     }
   };
@@ -135,12 +195,8 @@ export default function InvoicesPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const totalPending = invoices
-    .filter((i) => i.status === "sent")
-    .reduce((sum, i) => sum + i.amount, 0);
-  const totalPaid = invoices
-    .filter((i) => i.status === "paid")
-    .reduce((sum, i) => sum + i.amount, 0);
+  const totalPending = invoices.filter((i) => i.status === "sent").reduce((sum, i) => sum + i.amount, 0);
+  const totalPaid = invoices.filter((i) => i.status === "paid").reduce((sum, i) => sum + i.amount, 0);
 
   return (
     <DashboardLayout>
@@ -153,10 +209,12 @@ export default function InvoicesPage() {
         >
           <div>
             <h1 className="font-display text-3xl font-bold">Invoices</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage billing and payments
-            </p>
+            <p className="text-muted-foreground mt-1">Manage billing and payments</p>
           </div>
+          <Button onClick={() => { setCreateOpen(true); fetchCompletedJobs(); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Invoice
+          </Button>
         </motion.div>
 
         {/* Stats */}
@@ -177,9 +235,7 @@ export default function InvoicesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold text-amber-500">
-                    ${totalPending.toLocaleString()}
-                  </p>
+                  <p className="text-2xl font-bold text-amber-500">₹{totalPending.toLocaleString()}</p>
                 </div>
                 <Clock className="h-8 w-8 text-amber-500 opacity-50" />
               </div>
@@ -190,11 +246,9 @@ export default function InvoicesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Collected</p>
-                  <p className="text-2xl font-bold text-green-500">
-                    ${totalPaid.toLocaleString()}
-                  </p>
+                  <p className="text-2xl font-bold text-green-500">₹{totalPaid.toLocaleString()}</p>
                 </div>
-                <DollarSign className="h-8 w-8 text-green-500 opacity-50" />
+                <IndianRupee className="h-8 w-8 text-green-500 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -204,17 +258,10 @@ export default function InvoicesPage() {
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search invoices..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+            <Input placeholder="Search invoices..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
@@ -227,23 +274,15 @@ export default function InvoicesPage() {
 
         {/* Invoices List */}
         {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="pt-6">
-                  <div className="h-16 bg-muted rounded" />
-                </CardContent>
-              </Card>
-            ))}
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : filteredInvoices.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="font-semibold mb-1">No invoices yet</h3>
-              <p className="text-sm text-muted-foreground">
-                Invoices will appear here when jobs are completed
-              </p>
+              <p className="text-sm text-muted-foreground">Create an invoice from a completed job</p>
             </CardContent>
           </Card>
         ) : (
@@ -264,26 +303,18 @@ export default function InvoicesPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="font-medium font-mono">
-                              {invoice.invoice_number}
-                            </p>
+                            <p className="font-medium font-mono">{invoice.invoice_number}</p>
                             {getStatusBadge(invoice.status)}
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {invoice.customer?.name}
-                            {invoice.job?.car && (
-                              <span className="ml-2">
-                                • {invoice.job.car.make} {invoice.job.car.model}
-                              </span>
-                            )}
+                            {invoice.job?.car && <span className="ml-2">• {invoice.job.car.make} {invoice.job.car.model}</span>}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <p className="font-semibold">
-                            ${invoice.amount.toLocaleString()}
-                          </p>
+                          <p className="font-semibold">₹{invoice.amount.toLocaleString()}</p>
                           {invoice.due_date && (
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
@@ -293,19 +324,11 @@ export default function InvoicesPage() {
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
+                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice.id, "sent")}>
-                              Mark as Sent
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice.id, "paid")}>
-                              Mark as Paid
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Download PDF</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice.id, "sent")}>Mark as Sent</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateInvoiceStatus(invoice.id, "paid")}>Mark as Paid</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -317,6 +340,51 @@ export default function InvoicesPage() {
           </div>
         )}
       </div>
+
+      {/* Create Invoice Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Invoice</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Completed Job *</Label>
+              <Select value={selectedJobId} onValueChange={(v) => {
+                setSelectedJobId(v);
+                const job = completedJobs.find(j => j.id === v);
+                if (job?.total_price) setInvoiceAmount(job.total_price.toString());
+              }}>
+                <SelectTrigger><SelectValue placeholder="Select a completed job" /></SelectTrigger>
+                <SelectContent>
+                  {completedJobs.map(job => (
+                    <SelectItem key={job.id} value={job.id}>
+                      {job.car?.make} {job.car?.model} — {job.customer?.name}
+                      {job.total_price ? ` (₹${job.total_price.toLocaleString()})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Amount (₹) *</Label>
+              <Input
+                type="number"
+                value={invoiceAmount}
+                onChange={(e) => setInvoiceAmount(e.target.value)}
+                placeholder="Enter amount"
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)} className="flex-1">Cancel</Button>
+              <Button onClick={handleCreateInvoice} disabled={!selectedJobId || !invoiceAmount || creating} className="flex-1">
+                {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                Create
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
