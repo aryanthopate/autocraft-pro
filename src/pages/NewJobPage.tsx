@@ -519,11 +519,9 @@ export default function NewJobPage() {
                   registrationNumber={vehicle.registration_number}
                   onVehicleTypeChange={(type) => setVehicle({ ...vehicle, vehicle_type: type as VehicleType })}
                   onMakeChange={(newMake) => {
-                    console.log("Parent onMakeChange:", newMake);
                     setVehicle(prev => ({ ...prev, make: newMake, model: "", year: "", color: "" }));
                   }}
                   onModelChange={(newModel) => {
-                    console.log("Parent onModelChange:", newModel);
                     setVehicle(prev => ({ ...prev, model: newModel, year: "", color: "" }));
                   }}
                   onYearChange={(newYear) => setVehicle(prev => ({ ...prev, year: newYear }))}

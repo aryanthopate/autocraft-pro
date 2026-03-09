@@ -403,10 +403,10 @@ export default function JobDetailPage() {
                   <Card>
                     <CardHeader className="pb-3"><CardTitle className="text-lg">Assign Staff</CardTitle></CardHeader>
                     <CardContent>
-                      <Select value={job.assigned_to || ""} onValueChange={handleAssign} disabled={updating}>
+                      <Select value={job.assigned_to || "unassigned"} onValueChange={(v) => handleAssign(v === "unassigned" ? "" : v)} disabled={updating}>
                         <SelectTrigger><SelectValue placeholder="Select staff member" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          <SelectItem value="unassignedunassigned">Unassigned</SelectItem>
                           {staff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
                         </SelectContent>
                       </Select>

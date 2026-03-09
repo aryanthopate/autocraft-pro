@@ -86,7 +86,7 @@ export function VehicleDropdowns({
           return;
         }
 
-        console.log("Fetched car models:", data);
+        
         setCarModels(data || []);
       } catch (err) {
         console.error("Error:", err);

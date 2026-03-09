@@ -151,6 +151,7 @@ export default function VehiclesPage() {
         year: "",
         color: "",
         license_plate: "",
+        vehicle_type: "sedan",
       });
       setIsDialogOpen(false);
       fetchData();
