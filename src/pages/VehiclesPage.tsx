@@ -245,6 +245,26 @@ export default function VehiclesPage() {
                     />
                   </div>
                 </div>
+                {/* Vehicle Type */}
+                <div className="space-y-2">
+                  <Label>Vehicle Type</Label>
+                  <Select
+                    value={formData.vehicle_type || "sedan"}
+                    onValueChange={(v) => setFormData({ ...formData, vehicle_type: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sedan">Sedan</SelectItem>
+                      <SelectItem value="suv">SUV</SelectItem>
+                      <SelectItem value="hatchback">Hatchback</SelectItem>
+                      <SelectItem value="coupe">Coupe</SelectItem>
+                      <SelectItem value="convertible">Convertible</SelectItem>
+                      <SelectItem value="pickup">Pickup</SelectItem>
+                      <SelectItem value="van">Van</SelectItem>
+                      <SelectItem value="bike">Bike</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="year">Year</Label>
