@@ -2,23 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
-  Car,
-  User,
-  Calendar,
-  Clock,
-  MapPin,
-  Plus,
-  CheckCircle2,
-  AlertCircle,
-  Camera,
-  Edit,
-  Trash2,
-  Send,
-  Ban,
-  Loader2,
-  Phone,
-  Truck,
+  ArrowLeft, Car, User, Calendar, Clock, Plus,
+  CheckCircle2, AlertCircle, Camera, Trash2, Send, Ban,
+  Loader2, Phone, Truck, Image as ImageIcon,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,22 +15,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnimatedCarSilhouette } from "@/components/car/AnimatedCarSilhouette";
 import { TransportRecordDialog } from "@/components/transport/TransportRecordDialog";
 
@@ -59,24 +39,9 @@ interface JobDetails {
   notes: string | null;
   customer_view_token: string;
   assigned_to: string | null;
-  customer?: {
-    id: string;
-    name: string;
-    phone: string;
-    email: string | null;
-  };
-  car?: {
-    id: string;
-    make: string;
-    model: string;
-    year: number | null;
-    color: string | null;
-    license_plate: string | null;
-  };
-  assigned_profile?: {
-    id: string;
-    full_name: string;
-  };
+  customer?: { id: string; name: string; phone: string; email: string | null };
+  car?: { id: string; make: string; model: string; year: number | null; color: string | null; license_plate: string | null };
+  assigned_profile?: { id: string; full_name: string };
 }
 
 interface JobZone {
@@ -90,64 +55,32 @@ interface JobZone {
   notes: string | null;
 }
 
-interface StaffMember {
-  id: string;
-  full_name: string;
-}
-
-interface TransportRecord {
-  id: string;
-  type: string;
-  condition_notes: string | null;
-  existing_damage: string | null;
-  recorded_at: string;
-  recorded_by: string | null;
-}
-
-interface JobSubmission {
-  id: string;
-  notes: string | null;
-  approved: boolean | null;
-  approved_at: string | null;
-  created_at: string;
-  issues_found: string | null;
-  submitted_by_profile?: { full_name: string } | null;
-}
+interface StaffMember { id: string; full_name: string }
+interface TransportRecord { id: string; type: string; condition_notes: string | null; existing_damage: string | null; recorded_at: string; recorded_by: string | null }
+interface JobSubmission { id: string; notes: string | null; approved: boolean | null; approved_at: string | null; created_at: string; issues_found: string | null; submitted_by_profile?: { full_name: string } | null }
+interface JobMedia { id: string; url: string; stage: string; type: string; caption: string | null; zone_id: string | null; created_at: string }
 
 const ZONE_TYPES = {
   exterior: [
-    { id: "hood", name: "Hood" },
-    { id: "roof", name: "Roof" },
-    { id: "trunk", name: "Trunk" },
-    { id: "front_bumper", name: "Front Bumper" },
-    { id: "rear_bumper", name: "Rear Bumper" },
-    { id: "front_fender_l", name: "Left Front Fender" },
-    { id: "front_fender_r", name: "Right Front Fender" },
-    { id: "rear_fender_l", name: "Left Rear Fender" },
-    { id: "rear_fender_r", name: "Right Rear Fender" },
-    { id: "door_fl", name: "Front Left Door" },
-    { id: "door_fr", name: "Front Right Door" },
-    { id: "door_rl", name: "Rear Left Door" },
-    { id: "door_rr", name: "Rear Right Door" },
+    { id: "hood", name: "Hood" }, { id: "roof", name: "Roof" }, { id: "trunk", name: "Trunk" },
+    { id: "front_bumper", name: "Front Bumper" }, { id: "rear_bumper", name: "Rear Bumper" },
+    { id: "front_fender_l", name: "Left Front Fender" }, { id: "front_fender_r", name: "Right Front Fender" },
+    { id: "rear_fender_l", name: "Left Rear Fender" }, { id: "rear_fender_r", name: "Right Rear Fender" },
+    { id: "door_fl", name: "Front Left Door" }, { id: "door_fr", name: "Front Right Door" },
+    { id: "door_rl", name: "Rear Left Door" }, { id: "door_rr", name: "Rear Right Door" },
   ],
   wheels: [
-    { id: "wheel_fl", name: "Front Left Wheel" },
-    { id: "wheel_fr", name: "Front Right Wheel" },
-    { id: "wheel_rl", name: "Rear Left Wheel" },
-    { id: "wheel_rr", name: "Rear Right Wheel" },
+    { id: "wheel_fl", name: "Front Left Wheel" }, { id: "wheel_fr", name: "Front Right Wheel" },
+    { id: "wheel_rl", name: "Rear Left Wheel" }, { id: "wheel_rr", name: "Rear Right Wheel" },
   ],
   glass: [
-    { id: "windshield", name: "Windshield" },
-    { id: "rear_glass", name: "Rear Glass" },
+    { id: "windshield", name: "Windshield" }, { id: "rear_glass", name: "Rear Glass" },
     { id: "side_glass", name: "Side Windows" },
   ],
   interior: [
-    { id: "dashboard", name: "Dashboard" },
-    { id: "seats", name: "Seats" },
-    { id: "carpet", name: "Carpet/Floor" },
-    { id: "headliner", name: "Headliner" },
-    { id: "door_panels", name: "Door Panels" },
-    { id: "console", name: "Center Console" },
+    { id: "dashboard", name: "Dashboard" }, { id: "seats", name: "Seats" },
+    { id: "carpet", name: "Carpet/Floor" }, { id: "headliner", name: "Headliner" },
+    { id: "door_panels", name: "Door Panels" }, { id: "console", name: "Center Console" },
   ],
 };
 
@@ -174,6 +107,7 @@ export default function JobDetailPage() {
   const [transportType, setTransportType] = useState<"pickup" | "dropoff">("pickup");
   const [submissions, setSubmissions] = useState<JobSubmission[]>([]);
   const [approvalNotes, setApprovalNotes] = useState("");
+  const [jobMedia, setJobMedia] = useState<JobMedia[]>([]);
 
   const [selectedCarZones, setSelectedCarZones] = useState<string[]>([]);
   const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
@@ -191,48 +125,22 @@ export default function JobDetailPage() {
       fetchStaff();
       fetchTransportRecords();
       fetchSubmissions();
+      fetchJobMedia();
     }
   }, [jobId, studio?.id]);
 
   const fetchJobDetails = async () => {
     if (!jobId) return;
-
     try {
       const [jobRes, zonesRes] = await Promise.all([
-        supabase
-          .from("jobs")
-          .select(`
-            *,
-            customers(id, name, phone, email),
-            cars(id, make, model, year, color, license_plate),
-            profiles!jobs_assigned_to_fkey(id, full_name)
-          `)
-          .eq("id", jobId)
-          .single(),
-        supabase
-          .from("job_zones")
-          .select("*")
-          .eq("job_id", jobId)
-          .order("created_at"),
+        supabase.from("jobs").select(`*, customers(id, name, phone, email), cars(id, make, model, year, color, license_plate), profiles!jobs_assigned_to_fkey(id, full_name)`).eq("id", jobId).single(),
+        supabase.from("job_zones").select("*").eq("job_id", jobId).order("created_at"),
       ]);
-
       if (jobRes.error) throw jobRes.error;
-
-      const jobData = {
-        ...jobRes.data,
-        customer: jobRes.data.customers,
-        car: jobRes.data.cars,
-        assigned_profile: jobRes.data.profiles,
-      };
-
-      setJob(jobData);
-      setZones((zonesRes.data || []).map((z: any) => ({
-        ...z,
-        services: Array.isArray(z.services) ? z.services : [],
-      })));
+      setJob({ ...jobRes.data, customer: jobRes.data.customers, car: jobRes.data.cars, assigned_profile: jobRes.data.profiles });
+      setZones((zonesRes.data || []).map((z: any) => ({ ...z, services: Array.isArray(z.services) ? z.services : [] })));
       setSelectedCarZones((zonesRes.data || []).map((z: any) => z.zone_name));
-    } catch (error) {
-      console.error("Error fetching job:", error);
+    } catch {
       toast({ variant: "destructive", title: "Error", description: "Could not load job details." });
     } finally {
       setLoading(false);
@@ -241,76 +149,41 @@ export default function JobDetailPage() {
 
   const fetchStaff = async () => {
     if (!studio?.id) return;
-
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .eq("studio_id", studio.id)
-      .eq("status", "approved");
-
+    const { data } = await supabase.from("profiles").select("id, full_name").eq("studio_id", studio.id).eq("status", "approved");
     if (data) setStaff(data);
   };
 
   const fetchTransportRecords = async () => {
     if (!jobId) return;
-
-    const { data } = await supabase
-      .from("transport_records")
-      .select("*")
-      .eq("job_id", jobId)
-      .order("recorded_at", { ascending: false });
-
+    const { data } = await supabase.from("transport_records").select("*").eq("job_id", jobId).order("recorded_at", { ascending: false });
     if (data) setTransportRecords(data);
   };
 
   const fetchSubmissions = async () => {
     if (!jobId) return;
-
-    const { data } = await supabase
-      .from("job_submissions")
-      .select(`
-        *,
-        submitted_by_profile:profiles!job_submissions_submitted_by_fkey(full_name)
-      `)
-      .eq("job_id", jobId)
-      .order("created_at", { ascending: false });
-
+    const { data } = await supabase.from("job_submissions").select(`*, submitted_by_profile:profiles!job_submissions_submitted_by_fkey(full_name)`).eq("job_id", jobId).order("created_at", { ascending: false });
     if (data) setSubmissions(data as JobSubmission[]);
+  };
+
+  const fetchJobMedia = async () => {
+    if (!jobId) return;
+    const { data } = await supabase.from("job_media").select("*").eq("job_id", jobId).order("created_at", { ascending: false });
+    if (data) setJobMedia(data);
   };
 
   const handleApproveSubmission = async (submissionId: string, approved: boolean) => {
     if (!profile?.id || !job) return;
     setUpdating(true);
-
     try {
-      const { error } = await supabase
-        .from("job_submissions")
-        .update({
-          approved,
-          approved_by: profile.id,
-          approved_at: new Date().toISOString(),
-          issues_found: !approved ? approvalNotes || null : null,
-        })
-        .eq("id", submissionId);
-
+      const { error } = await supabase.from("job_submissions").update({ approved, approved_by: profile.id, approved_at: new Date().toISOString(), issues_found: !approved ? approvalNotes || null : null }).eq("id", submissionId);
       if (error) throw error;
-
       if (approved) {
-        await supabase
-          .from("jobs")
-          .update({ status: "completed" })
-          .eq("id", job.id);
-
+        await supabase.from("jobs").update({ status: "completed" }).eq("id", job.id);
         toast({ title: "Job approved!", description: "Job marked as completed." });
       } else {
-        await supabase
-          .from("jobs")
-          .update({ status: "in_progress" })
-          .eq("id", job.id);
-
+        await supabase.from("jobs").update({ status: "in_progress" }).eq("id", job.id);
         toast({ title: "Job sent back", description: "Worker will see feedback and continue." });
       }
-
       setApprovalNotes("");
       fetchJobDetails();
       fetchSubmissions();
@@ -324,17 +197,12 @@ export default function JobDetailPage() {
   const handleStatusChange = async (newStatus: string) => {
     if (!job) return;
     setUpdating(true);
-
     try {
-      const { error } = await supabase
-        .from("jobs")
-        .update({ status: newStatus as any })
-        .eq("id", job.id);
-
+      const { error } = await supabase.from("jobs").update({ status: newStatus as any }).eq("id", job.id);
       if (error) throw error;
       toast({ title: "Status updated" });
       fetchJobDetails();
-    } catch (error) {
+    } catch {
       toast({ variant: "destructive", title: "Error", description: "Could not update status." });
     } finally {
       setUpdating(false);
@@ -344,17 +212,12 @@ export default function JobDetailPage() {
   const handleAssign = async (staffId: string) => {
     if (!job) return;
     setUpdating(true);
-
     try {
-      const { error } = await supabase
-        .from("jobs")
-        .update({ assigned_to: staffId || null })
-        .eq("id", job.id);
-
+      const { error } = await supabase.from("jobs").update({ assigned_to: staffId || null }).eq("id", job.id);
       if (error) throw error;
       toast({ title: "Assignment updated" });
       fetchJobDetails();
-    } catch (error) {
+    } catch {
       toast({ variant: "destructive", title: "Error", description: "Could not assign staff." });
     } finally {
       setUpdating(false);
@@ -362,84 +225,40 @@ export default function JobDetailPage() {
   };
 
   const handleZoneClick = (zoneId: string) => {
-    // Find zone info
     let zoneInfo: { id: string; name: string; type: string } | null = null;
-    for (const [type, zones] of Object.entries(ZONE_TYPES)) {
-      const found = zones.find((z) => z.id === zoneId);
-      if (found) {
-        zoneInfo = { id: found.id, name: found.name, type };
-        break;
-      }
+    for (const [type, zonesList] of Object.entries(ZONE_TYPES)) {
+      const found = zonesList.find((z) => z.id === zoneId);
+      if (found) { zoneInfo = { id: found.id, name: found.name, type }; break; }
     }
-
     if (!zoneInfo) return;
-
-    // Check if zone already exists
     const existingZone = zones.find((z) => z.zone_name === zoneId);
-    if (existingZone) {
-      // Show existing zone details
-      setSelectedZoneToAdd(zoneInfo);
-      setZoneFormData({
-        services: existingZone.services,
-        colorChange: existingZone.color_change || "",
-        expectedResult: existingZone.expected_result || "",
-        notes: existingZone.notes || "",
-      });
-    } else {
-      // Add new zone
-      setSelectedZoneToAdd(zoneInfo);
-      setZoneFormData({
-        services: [],
-        colorChange: "",
-        expectedResult: "",
-        notes: "",
-      });
-    }
+    setSelectedZoneToAdd(zoneInfo);
+    setZoneFormData(existingZone ? {
+      services: existingZone.services,
+      colorChange: existingZone.color_change || "",
+      expectedResult: existingZone.expected_result || "",
+      notes: existingZone.notes || "",
+    } : { services: [], colorChange: "", expectedResult: "", notes: "" });
     setZoneDialogOpen(true);
   };
 
   const handleSaveZone = async () => {
     if (!job || !selectedZoneToAdd) return;
     setUpdating(true);
-
     try {
       const existingZone = zones.find((z) => z.zone_name === selectedZoneToAdd.id);
-
       if (existingZone) {
-        // Update existing zone
-        const { error } = await supabase
-          .from("job_zones")
-          .update({
-            services: zoneFormData.services,
-            color_change: zoneFormData.colorChange || null,
-            expected_result: zoneFormData.expectedResult || null,
-            notes: zoneFormData.notes || null,
-          })
-          .eq("id", existingZone.id);
-
+        const { error } = await supabase.from("job_zones").update({ services: zoneFormData.services, color_change: zoneFormData.colorChange || null, expected_result: zoneFormData.expectedResult || null, notes: zoneFormData.notes || null }).eq("id", existingZone.id);
         if (error) throw error;
         toast({ title: "Zone updated" });
       } else {
-        // Create new zone
-        const { error } = await supabase
-          .from("job_zones")
-          .insert({
-            job_id: job.id,
-            zone_name: selectedZoneToAdd.id,
-            zone_type: selectedZoneToAdd.type,
-            services: zoneFormData.services,
-            color_change: zoneFormData.colorChange || null,
-            expected_result: zoneFormData.expectedResult || null,
-            notes: zoneFormData.notes || null,
-          });
-
+        const { error } = await supabase.from("job_zones").insert({ job_id: job.id, zone_name: selectedZoneToAdd.id, zone_type: selectedZoneToAdd.type, services: zoneFormData.services, color_change: zoneFormData.colorChange || null, expected_result: zoneFormData.expectedResult || null, notes: zoneFormData.notes || null });
         if (error) throw error;
         toast({ title: "Zone added" });
       }
-
       setZoneDialogOpen(false);
       fetchJobDetails();
-    } catch (error) {
+    } catch {
       toast({ variant: "destructive", title: "Error", description: "Could not save zone." });
     } finally {
       setUpdating(false);
@@ -449,15 +268,11 @@ export default function JobDetailPage() {
   const handleDeleteZone = async (zoneId: string) => {
     setUpdating(true);
     try {
-      const { error } = await supabase
-        .from("job_zones")
-        .delete()
-        .eq("id", zoneId);
-
+      const { error } = await supabase.from("job_zones").delete().eq("id", zoneId);
       if (error) throw error;
       toast({ title: "Zone removed" });
       fetchJobDetails();
-    } catch (error) {
+    } catch {
       toast({ variant: "destructive", title: "Error", description: "Could not remove zone." });
     } finally {
       setUpdating(false);
@@ -479,6 +294,9 @@ export default function JobDetailPage() {
   const completedZones = zones.filter((z) => z.completed).length;
   const progressPercent = zones.length > 0 ? (completedZones / zones.length) * 100 : 0;
 
+  const beforeMedia = jobMedia.filter(m => m.stage === "before");
+  const afterMedia = jobMedia.filter(m => m.stage === "after");
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -495,9 +313,7 @@ export default function JobDetailPage() {
         <div className="text-center py-16">
           <AlertCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-semibold">Job not found</h2>
-          <Button variant="outline" onClick={() => navigate("/dashboard/jobs")} className="mt-4">
-            Back to Jobs
-          </Button>
+          <Button variant="outline" onClick={() => navigate("/dashboard/jobs")} className="mt-4">Back to Jobs</Button>
         </div>
       </DashboardLayout>
     );
@@ -507,55 +323,28 @@ export default function JobDetailPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-start justify-between"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/jobs")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/jobs")}><ArrowLeft className="h-5 w-5" /></Button>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="font-display text-2xl font-bold">
-                  {job.car?.make} {job.car?.model}
-                  {job.car?.year && ` (${job.car.year})`}
-                </h1>
-                <Badge variant="outline" className={getStatusColor(job.status)}>
-                  {job.status.replace("_", " ")}
-                </Badge>
+                <h1 className="font-display text-2xl font-bold">{job.car?.make} {job.car?.model}{job.car?.year && ` (${job.car.year})`}</h1>
+                <Badge variant="outline" className={getStatusColor(job.status)}>{job.status.replace("_", " ")}</Badge>
               </div>
               <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  {job.customer?.name}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  {job.customer?.phone}
-                </span>
+                <span className="flex items-center gap-1"><User className="h-3 w-3" />{job.customer?.name}</span>
+                <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{job.customer?.phone}</span>
+                {job.total_price && <span className="font-semibold text-foreground">₹{job.total_price.toLocaleString()}</span>}
               </div>
             </div>
           </div>
-
           {isOwner && (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const trackUrl = `${window.location.origin}/track`;
-                  navigator.clipboard.writeText(trackUrl);
-                  toast({ title: "Tracking link copied!", description: "Share this with the customer to track their vehicle." });
-                }}
-              >
+              <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/track`); toast({ title: "Tracking link copied!" }); }}>
                 Copy Tracking Link
               </Button>
               <Select value={job.status} onValueChange={handleStatusChange} disabled={updating}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
@@ -582,385 +371,307 @@ export default function JobDetailPage() {
           </Card>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Car Visualization */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Car className="h-5 w-5 text-racing" />
-                  Zone Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AnimatedCarSilhouette
-                  selectedZones={selectedCarZones}
-                  onZoneClick={handleZoneClick}
-                  interactive={true}
-                />
-                <p className="text-sm text-muted-foreground text-center mt-4">
-                  Click on car zones to configure services
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="zones" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="zones">Zones & Config</TabsTrigger>
+            <TabsTrigger value="media">
+              Media
+              {jobMedia.length > 0 && <Badge variant="secondary" className="ml-1.5 text-xs">{jobMedia.length}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
+          </TabsList>
 
-          {/* Job Info & Assignment */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-4"
-          >
-            {/* Assignment */}
-            {isOwner && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Assign Staff</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select
-                    value={job.assigned_to || ""}
-                    onValueChange={handleAssign}
-                    disabled={updating}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select staff member" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
-                      {staff.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {job.assigned_profile && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Currently assigned to: <span className="font-medium">{job.assigned_profile.full_name}</span>
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+          {/* Zones Tab */}
+          <TabsContent value="zones">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Car className="h-5 w-5 text-primary" />Zone Configuration</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AnimatedCarSilhouette selectedZones={selectedCarZones} onZoneClick={handleZoneClick} interactive={true} />
+                    <p className="text-sm text-muted-foreground text-center mt-4">Click on car zones to configure services</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-            {/* Transport / Pickup-Drop */}
-            {job.transport !== "none" && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Truck className="h-5 w-5 text-primary" />
-                      Transport
-                    </CardTitle>
-                    <Badge variant="outline" className="capitalize">
-                      {job.transport === "both" ? "Pickup & Drop" : job.transport}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* Transport Records */}
-                  {transportRecords.length > 0 ? (
-                    <div className="space-y-2">
-                      {transportRecords.map((record) => (
-                        <div
-                          key={record.id}
-                          className="p-3 rounded-lg border bg-muted/30"
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <Badge variant="secondary" className="capitalize">
-                              {record.type}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(record.recorded_at).toLocaleString()}
-                            </span>
-                          </div>
-                          {record.condition_notes && (
-                            <p className="text-sm text-muted-foreground">
-                              {record.condition_notes}
-                            </p>
-                          )}
-                          {record.existing_damage && (
-                            <p className="text-sm text-amber-600 mt-1">
-                              ⚠ Damage: {record.existing_damage}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No transport records yet
-                    </p>
-                  )}
-
-                  {/* Transport Actions */}
-                  <div className="flex gap-2">
-                    {(job.transport === "pickup" || job.transport === "both") && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          setTransportType("pickup");
-                          setTransportDialogOpen(true);
-                        }}
-                        disabled={transportRecords.some((r) => r.type === "pickup")}
-                      >
-                        <Truck className="h-4 w-4 mr-1" />
-                        {transportRecords.some((r) => r.type === "pickup")
-                          ? "Pickup Done"
-                          : "Record Pickup"}
-                      </Button>
-                    )}
-                    {(job.transport === "drop" || job.transport === "both") && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          setTransportType("dropoff");
-                          setTransportDialogOpen(true);
-                        }}
-                        disabled={transportRecords.some((r) => r.type === "dropoff")}
-                      >
-                        <Truck className="h-4 w-4 mr-1" />
-                        {transportRecords.some((r) => r.type === "dropoff")
-                          ? "Drop Done"
-                          : "Record Drop"}
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Job Submission Review - Owner Approval */}
-            {isOwner && job.status === "awaiting_review" && submissions.length > 0 && (
-              <Card className="border-purple-500/30 bg-purple-500/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Send className="h-5 w-5 text-purple-500" />
-                    Submission for Review
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {submissions.filter(s => s.approved === null).map((sub) => (
-                    <div key={sub.id} className="space-y-3">
-                      <div className="p-3 rounded-lg bg-background border">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">
-                            Submitted by {sub.submitted_by_profile?.full_name || "Staff"}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(sub.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                        {sub.notes && (
-                          <p className="text-sm text-muted-foreground">{sub.notes}</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Feedback (required for rejection)</Label>
-                        <Textarea
-                          placeholder="Issues found, things to redo..."
-                          value={approvalNotes}
-                          onChange={(e) => setApprovalNotes(e.target.value)}
-                          rows={2}
-                          className="resize-none"
-                        />
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/10"
-                          onClick={() => handleApproveSubmission(sub.id, false)}
-                          disabled={updating || !approvalNotes.trim()}
-                        >
-                          <Ban className="h-4 w-4 mr-1" />
-                          Send Back
-                        </Button>
-                        <Button
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                          onClick={() => handleApproveSubmission(sub.id, true)}
-                          disabled={updating}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Approve & Complete
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Configured Zones ({zones.length})</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {zones.length === 0 ? (
-                  <div className="p-6 text-center text-muted-foreground">
-                    <Plus className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>No zones configured</p>
-                    <p className="text-sm">Click on the car to add zones</p>
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {zones.map((zone) => (
-                      <div
-                        key={zone.id}
-                        className={`p-4 flex items-center justify-between ${zone.completed ? "bg-green-500/5" : ""}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {zone.completed ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
-                          )}
-                          <div>
-                            <p className="font-medium">{zone.zone_name.replace(/_/g, " ")}</p>
-                            <p className="text-xs text-muted-foreground capitalize">
-                              {zone.zone_type} • {zone.services.length} services
-                            </p>
-                          </div>
-                        </div>
-                        {isOwner && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteZone(zone.id)}
-                            disabled={updating}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="space-y-4">
+                {/* Assignment */}
+                {isOwner && (
+                  <Card>
+                    <CardHeader className="pb-3"><CardTitle className="text-lg">Assign Staff</CardTitle></CardHeader>
+                    <CardContent>
+                      <Select value={job.assigned_to || ""} onValueChange={handleAssign} disabled={updating}>
+                        <SelectTrigger><SelectValue placeholder="Select staff member" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Unassigned</SelectItem>
+                          {staff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      {job.assigned_profile && <p className="text-sm text-muted-foreground mt-2">Currently assigned to: <span className="font-medium">{job.assigned_profile.full_name}</span></p>}
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
 
-            {/* Job Notes */}
-            {job.notes && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Notes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{job.notes}</p>
-                </CardContent>
-              </Card>
-            )}
-          </motion.div>
-        </div>
+                {/* Submission Review */}
+                {isOwner && job.status === "awaiting_review" && submissions.filter(s => s.approved === null).length > 0 && (
+                  <Card className="border-purple-500/30 bg-purple-500/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2"><Send className="h-5 w-5 text-purple-500" />Submission for Review</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {submissions.filter(s => s.approved === null).map((sub) => (
+                        <div key={sub.id} className="space-y-3">
+                          <div className="p-3 rounded-lg bg-background border">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium">Submitted by {sub.submitted_by_profile?.full_name || "Staff"}</span>
+                              <span className="text-xs text-muted-foreground">{new Date(sub.created_at).toLocaleString()}</span>
+                            </div>
+                            {sub.notes && <p className="text-sm text-muted-foreground">{sub.notes}</p>}
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Feedback (required for rejection)</Label>
+                            <Textarea placeholder="Issues found, things to redo..." value={approvalNotes} onChange={(e) => setApprovalNotes(e.target.value)} rows={2} className="resize-none" />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => handleApproveSubmission(sub.id, false)} disabled={updating || !approvalNotes.trim()}>
+                              <Ban className="h-4 w-4 mr-1" />Send Back
+                            </Button>
+                            <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleApproveSubmission(sub.id, true)} disabled={updating}>
+                              <CheckCircle2 className="h-4 w-4 mr-1" />Approve & Complete
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Zones List */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Configured Zones ({zones.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {zones.length === 0 ? (
+                      <div className="p-6 text-center text-muted-foreground">
+                        <Plus className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No zones configured</p>
+                        <p className="text-sm">Click on the car to add zones</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y">
+                        {zones.map((zone) => (
+                          <div key={zone.id} className={`p-4 flex items-center justify-between ${zone.completed ? "bg-green-500/5" : ""}`}>
+                            <div className="flex items-center gap-3">
+                              {zone.completed ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />}
+                              <div>
+                                <p className="font-medium">{zone.zone_name.replace(/_/g, " ")}</p>
+                                <p className="text-xs text-muted-foreground capitalize">{zone.zone_type} • {zone.services.length} services</p>
+                              </div>
+                            </div>
+                            {isOwner && (
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteZone(zone.id)} disabled={updating}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          </TabsContent>
+
+          {/* Media Tab - Photo Gallery */}
+          <TabsContent value="media">
+            <div className="space-y-6">
+              {jobMedia.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                    <h3 className="font-semibold mb-1">No media uploaded yet</h3>
+                    <p className="text-sm text-muted-foreground">Staff and mechanics can upload before/after photos per zone</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {beforeMedia.length > 0 && (
+                    <Card>
+                      <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Camera className="h-5 w-5 text-amber-500" />Before Photos ({beforeMedia.length})</CardTitle></CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {beforeMedia.map(m => (
+                            <div key={m.id} className="relative group rounded-lg overflow-hidden border aspect-square">
+                              <img src={m.url} alt={m.caption || "Before"} className="w-full h-full object-cover" />
+                              {m.caption && (
+                                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                                  <p className="text-xs text-white truncate">{m.caption}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {afterMedia.length > 0 && (
+                    <Card>
+                      <CardHeader><CardTitle className="text-lg flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-green-500" />After Photos ({afterMedia.length})</CardTitle></CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {afterMedia.map(m => (
+                            <div key={m.id} className="relative group rounded-lg overflow-hidden border aspect-square">
+                              <img src={m.url} alt={m.caption || "After"} className="w-full h-full object-cover" />
+                              {m.caption && (
+                                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                                  <p className="text-xs text-white truncate">{m.caption}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Details Tab */}
+          <TabsContent value="details">
+            <div className="grid gap-4 lg:grid-cols-2">
+              {/* Transport */}
+              {job.transport !== "none" && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2"><Truck className="h-5 w-5 text-primary" />Transport</CardTitle>
+                      <Badge variant="outline" className="capitalize">{job.transport === "both" ? "Pickup & Drop" : job.transport}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {transportRecords.length > 0 ? (
+                      <div className="space-y-2">
+                        {transportRecords.map((record) => (
+                          <div key={record.id} className="p-3 rounded-lg border bg-muted/30">
+                            <div className="flex items-center justify-between mb-1">
+                              <Badge variant="secondary" className="capitalize">{record.type}</Badge>
+                              <span className="text-xs text-muted-foreground">{new Date(record.recorded_at).toLocaleString()}</span>
+                            </div>
+                            {record.condition_notes && <p className="text-sm text-muted-foreground">{record.condition_notes}</p>}
+                            {record.existing_damage && <p className="text-sm text-amber-600 mt-1">⚠ Damage: {record.existing_damage}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="text-sm text-muted-foreground">No transport records yet</p>}
+                    <div className="flex gap-2">
+                      {(job.transport === "pickup" || job.transport === "both") && (
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => { setTransportType("pickup"); setTransportDialogOpen(true); }} disabled={transportRecords.some((r) => r.type === "pickup")}>
+                          <Truck className="h-4 w-4 mr-1" />{transportRecords.some((r) => r.type === "pickup") ? "Pickup Done" : "Record Pickup"}
+                        </Button>
+                      )}
+                      {(job.transport === "drop" || job.transport === "both") && (
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => { setTransportType("dropoff"); setTransportDialogOpen(true); }} disabled={transportRecords.some((r) => r.type === "dropoff")}>
+                          <Truck className="h-4 w-4 mr-1" />{transportRecords.some((r) => r.type === "dropoff") ? "Drop Done" : "Record Drop"}
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Job Notes */}
+              {job.notes && (
+                <Card>
+                  <CardHeader className="pb-3"><CardTitle className="text-lg">Notes</CardTitle></CardHeader>
+                  <CardContent><p className="text-sm text-muted-foreground">{job.notes}</p></CardContent>
+                </Card>
+              )}
+
+              {/* Submission History */}
+              {submissions.length > 0 && (
+                <Card className="lg:col-span-2">
+                  <CardHeader className="pb-3"><CardTitle className="text-lg">Submission History</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {submissions.map(sub => (
+                        <div key={sub.id} className="p-3 rounded-lg border">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium">{sub.submitted_by_profile?.full_name || "Staff"}</span>
+                            <div className="flex items-center gap-2">
+                              {sub.approved === true && <Badge className="bg-green-500/15 text-green-500 border-green-500/30">Approved</Badge>}
+                              {sub.approved === false && <Badge className="bg-destructive/15 text-destructive border-destructive/30">Rejected</Badge>}
+                              {sub.approved === null && <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30">Pending</Badge>}
+                              <span className="text-xs text-muted-foreground">{new Date(sub.created_at).toLocaleString()}</span>
+                            </div>
+                          </div>
+                          {sub.notes && <p className="text-sm text-muted-foreground">{sub.notes}</p>}
+                          {sub.issues_found && <p className="text-sm text-destructive mt-1">Issues: {sub.issues_found}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Zone Dialog */}
       <Dialog open={zoneDialogOpen} onOpenChange={setZoneDialogOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedZoneToAdd?.name} Configuration
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{selectedZoneToAdd?.name} Configuration</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-3">
               <Label className="text-base font-semibold">Services</Label>
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                 {SERVICES.map((service) => (
-                  <label
-                    key={service}
-                    className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer text-sm ${
-                      zoneFormData.services.includes(service)
-                        ? "bg-primary/10 border-primary"
-                        : "bg-muted/30 border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <Checkbox
-                      checked={zoneFormData.services.includes(service)}
-                      onCheckedChange={(checked) => {
-                        setZoneFormData((prev) => ({
-                          ...prev,
-                          services: checked
-                            ? [...prev.services, service]
-                            : prev.services.filter((s) => s !== service),
-                        }));
-                      }}
-                    />
+                  <label key={service} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer text-sm ${zoneFormData.services.includes(service) ? "bg-primary/10 border-primary" : "bg-muted/30 border-border hover:border-primary/50"}`}>
+                    <Checkbox checked={zoneFormData.services.includes(service)} onCheckedChange={(checked) => {
+                      setZoneFormData((prev) => ({ ...prev, services: checked ? [...prev.services, service] : prev.services.filter((s) => s !== service) }));
+                    }} />
                     <span>{service}</span>
                   </label>
                 ))}
               </div>
             </div>
-
             <div className="space-y-2">
               <Label>Color Change (optional)</Label>
-              <Input
-                placeholder="e.g., Gloss Black, Matte Red"
-                value={zoneFormData.colorChange}
-                onChange={(e) => setZoneFormData((prev) => ({ ...prev, colorChange: e.target.value }))}
-              />
+              <Input placeholder="e.g., Gloss Black, Matte Red" value={zoneFormData.colorChange} onChange={(e) => setZoneFormData((prev) => ({ ...prev, colorChange: e.target.value }))} />
             </div>
-
             <div className="space-y-2">
               <Label>Expected Result</Label>
-              <Input
-                placeholder="e.g., Mirror finish, swirl-free"
-                value={zoneFormData.expectedResult}
-                onChange={(e) => setZoneFormData((prev) => ({ ...prev, expectedResult: e.target.value }))}
-              />
+              <Input placeholder="e.g., Mirror finish, Paint correction" value={zoneFormData.expectedResult} onChange={(e) => setZoneFormData((prev) => ({ ...prev, expectedResult: e.target.value }))} />
             </div>
-
             <div className="space-y-2">
               <Label>Notes</Label>
-              <Textarea
-                placeholder="Special instructions..."
-                value={zoneFormData.notes}
-                onChange={(e) => setZoneFormData((prev) => ({ ...prev, notes: e.target.value }))}
-                rows={3}
-              />
+              <Textarea placeholder="Special instructions..." value={zoneFormData.notes} onChange={(e) => setZoneFormData((prev) => ({ ...prev, notes: e.target.value }))} rows={2} />
             </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" onClick={() => setZoneDialogOpen(false)} className="flex-1">
-                Cancel
-              </Button>
-              <Button onClick={handleSaveZone} disabled={updating} className="flex-1">
-                {updating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Save Zone
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => setZoneDialogOpen(false)} className="flex-1">Cancel</Button>
+              <Button onClick={handleSaveZone} disabled={updating || zoneFormData.services.length === 0} className="flex-1">
+                {updating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Save Zone
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Transport Record Dialog */}
-      {job && job.car && job.customer && profile && (
+      {/* Transport Dialog */}
+      {job && (
         <TransportRecordDialog
           open={transportDialogOpen}
           onOpenChange={setTransportDialogOpen}
           jobId={job.id}
           type={transportType}
-          carInfo={{
-            make: job.car.make,
-            model: job.car.model,
-            color: job.car.color,
-          }}
-          customerName={job.customer.name}
-          profileId={profile.id}
-          onSuccess={fetchTransportRecords}
+          onSuccess={() => { fetchTransportRecords(); setTransportDialogOpen(false); }}
         />
       )}
     </DashboardLayout>
