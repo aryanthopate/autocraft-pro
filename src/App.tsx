@@ -35,6 +35,7 @@ const EstimatesPage = lazy(() => import("./pages/EstimatesPage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const ActivityLogPage = lazy(() => import("./pages/ActivityLogPage"));
 const CustomerPortalPage = lazy(() => import("./pages/CustomerPortalPage"));
+const NotificationLogPage = lazy(() => import("./pages/NotificationLogPage"));
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { AdminProtectedRoute } from "./components/auth/AdminProtectedRoute";
 
@@ -134,6 +135,11 @@ const App = () => (
             <Route path="/dashboard/activity" element={
               <ProtectedRoute requireOwner>
                 <ActivityLogPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/notifications" element={
+              <ProtectedRoute requireOwner>
+                <NotificationLogPage />
               </ProtectedRoute>
             } />
             

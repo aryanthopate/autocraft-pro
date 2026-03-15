@@ -528,12 +528,15 @@ export type Database = {
           created_at: string
           customer_id: string
           due_date: string | null
+          gst_amount: number | null
+          gst_percentage: number | null
           id: string
           invoice_number: string
           job_id: string
           notes: string | null
           status: string
           studio_id: string
+          subtotal: number | null
           updated_at: string
         }
         Insert: {
@@ -541,12 +544,15 @@ export type Database = {
           created_at?: string
           customer_id: string
           due_date?: string | null
+          gst_amount?: number | null
+          gst_percentage?: number | null
           id?: string
           invoice_number: string
           job_id: string
           notes?: string | null
           status?: string
           studio_id: string
+          subtotal?: number | null
           updated_at?: string
         }
         Update: {
@@ -554,12 +560,15 @@ export type Database = {
           created_at?: string
           customer_id?: string
           due_date?: string | null
+          gst_amount?: number | null
+          gst_percentage?: number | null
           id?: string
           invoice_number?: string
           job_id?: string
           notes?: string | null
           status?: string
           studio_id?: string
+          subtotal?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -953,6 +962,127 @@ export type Database = {
           },
           {
             foreignKeyName: "jobs_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_logs: {
+        Row: {
+          channel: string
+          created_at: string
+          customer_id: string | null
+          id: string
+          invoice_id: string | null
+          job_id: string | null
+          message_body: string
+          metadata: Json | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          status: string
+          studio_id: string
+          template_type: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          job_id?: string | null
+          message_body: string
+          metadata?: Json | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          status?: string
+          studio_id: string
+          template_type: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          job_id?: string | null
+          message_body?: string
+          metadata?: Json | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          status?: string
+          studio_id?: string
+          template_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_templates: {
+        Row: {
+          body_template: string
+          channel: string
+          created_at: string
+          id: string
+          is_default: boolean | null
+          studio_id: string | null
+          template_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body_template: string
+          channel?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          studio_id?: string | null
+          template_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body_template?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          studio_id?: string | null
+          template_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_studio_id_fkey"
             columns: ["studio_id"]
             isOneToOne: false
             referencedRelation: "studios"
