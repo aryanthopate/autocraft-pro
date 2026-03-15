@@ -42,6 +42,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         { name: "Staff", href: "/dashboard/staff", icon: Users },
         { name: "Invoices", href: "/dashboard/invoices", icon: FileText },
         { name: "Activity", href: "/dashboard/activity", icon: Activity },
+        { name: "Notifications", href: "/dashboard/notifications", icon: MessageSquare },
         { name: "Settings", href: "/dashboard/settings", icon: Settings },
       ];
     }

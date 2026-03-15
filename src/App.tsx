@@ -137,6 +137,11 @@ const App = () => (
                 <ActivityLogPage />
               </ProtectedRoute>
             } />
+            <Route path="/dashboard/notifications" element={
+              <ProtectedRoute requireOwner>
+                <NotificationLogPage />
+              </ProtectedRoute>
+            } />
             
             {/* Staff Dashboard */}
             <Route path="/staff" element={
